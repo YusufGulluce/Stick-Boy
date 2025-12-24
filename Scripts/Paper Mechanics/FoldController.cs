@@ -29,10 +29,18 @@ public class FoldController : MonoBehaviour
     private SpriteRenderer keySR;
     [SerializeField]
     private LayerMask playerLayer;
+    [SerializeField]
+    private LayerMask obstacleLayer;
     private bool playerInFront;
 
 
-
+    [Header("Collision Holder")]
+    [SerializeField]
+    private MeshCollider mc;
+    [SerializeField]
+    private Vector3 depth;
+    private List<Vector3> verts = new();
+    private List<int> tris = new();
 
 
     private Vector2 foldPointStart;
@@ -80,6 +88,9 @@ public class FoldController : MonoBehaviour
 
         pageCenterStart = backPage.position;
         foldableLength = backPage.localScale.x;
+
+        if (mc.sharedMesh == null)
+            mc.sharedMesh = new();
     }
     private void OnDestroy()
     {
@@ -91,6 +102,10 @@ public class FoldController : MonoBehaviour
     {
         if(enabled)
         {
+            mc.sharedMesh.Clear();
+            verts.Clear();
+            tris.Clear();
+
             foldPointStart = position;
             foldVector = vector;
 
@@ -108,6 +123,7 @@ public class FoldController : MonoBehaviour
             Vector2 vect = pageCenterStart - foldPointStart;
             startAngle = Vector2.SignedAngle(foldDirection, vect);
             startDistance = vect.magnitude;
+
         }
     }
 
@@ -135,6 +151,14 @@ public class FoldController : MonoBehaviour
             else
                 c.a = .5f;
             keySR.color = c;
+
+            PlaceCollisionHolders();
+            if(verts.Count > 0)
+            {
+                mc.sharedMesh.SetVertices(verts);
+                mc.sharedMesh.SetTriangles(tris, 0);
+                mc.sharedMesh = mc.sharedMesh;
+            }
         }
     }
 
@@ -217,18 +241,6 @@ public class FoldController : MonoBehaviour
         return ret;
     }
 
-    //private int CheckPlayerIn(Collider2D col)
-    //{
-    //    Physics.SyncTransforms();
-    //    int count = 0;
-    //    for (int i = 0; i < 4; ++i)
-    //    {
-    //        Vector2 offset = Vector2.up * ((i / 2) * 2 - 1) + Vector2.right * ((i % 2) * 2 - 1);
-    //        if (col.OverlapPoint((Vector2)playerTr.position + offset))
-    //            count++;
-    //    }
-    //    return count;
-    //}
     private int CheckPlayerIn(Collider col)
     {
         Physics.SyncTransforms();
@@ -290,5 +302,102 @@ public class FoldController : MonoBehaviour
         playerTr.SetParent(backPage);
         enabled = true;
         PauseMenu.SetResume(true);
+    }
+
+    private void PlaceCollisionHolders()
+    {
+        float cos = backPage.transform.rotation.eulerAngles.z;
+        Debug.Log(cos);
+        float sin = Mathf.Sin(cos * Mathf.PI / 180f);
+        cos = Mathf.Cos(cos * Mathf.PI / 180f);
+        float x = backPage.transform.lossyScale.x / 2;
+        float y = backPage.transform.lossyScale.y / 2;
+
+        Vector3[] corners =
+            {
+            (Vector2)backPage.transform.position + new Vector2(x * cos - y * sin, x * sin + y * cos),
+            (Vector2)backPage.transform.position + new Vector2(-x * cos - y * sin, -x * sin + y * cos),
+            (Vector2)backPage.transform.position + new Vector2(-x * cos + y * sin, -x * sin - y * cos),
+            (Vector2)backPage.transform.position + new Vector2(x * cos + y * sin, x * sin - y * cos)
+            };
+
+        List<RaycastHit> enters;
+        Stack<RaycastHit> exits;
+
+        Ray ray = new ();
+        Collider col = null;
+
+        ray.direction = corners[^1];
+        ray.origin = corners[^1];
+        for (int i = 0; i < 4; ++i)
+        {
+            float length = (ray.origin - corners[i]).magnitude;
+            ray.direction = ray.origin - corners[i];
+            ray.origin = corners[i];
+
+            Debug.Log(length);
+            enters = new(Physics.RaycastAll(ray, length, obstacleLayer));
+            exits = new(Physics.RaycastAll(new(ray.origin + ray.direction * length, -ray.direction), length, obstacleLayer));
+
+            while (exits.TryPop(out RaycastHit exitrh))
+            {
+                if (enters.Count > 0)
+                {
+                    RaycastHit enterrh = enters[^1];
+                    enters.RemoveAt(enters.Count - 1);
+
+                    PlaceCollisionHolder(enterrh.point, exitrh.point);
+                }
+            }
+            //while (exits.TryPop(out RaycastHit rh))
+            //{
+            //    if (enters.Count <= 0)
+            //    {
+            //        PlaceCollisionHolder(ray.origin, rh.point);
+            //    }
+            //    else if (rh.collider == enters[0].collider)
+            //    {
+            //        PlaceCollisionHolder(enters[0].point, rh.point);
+            //        enters.RemoveAt(0);
+            //    }
+            //    else if (enters.Count < 2)
+            //    {
+            //        PlaceCollisionHolder(ray.origin, rh.point);
+            //    }
+            //    else if (rh.collider == enters[1].collider)
+            //    {
+            //        PlaceCollisionHolder(enters[1].point, rh.point);
+            //        PlaceCollisionHolder(ray.origin + ray.direction * length, enters[0].point);
+            //        enters.RemoveRange(0, 2);
+            //    }
+            //    else
+            //    {
+            //        PlaceCollisionHolder(ray.origin, rh.point);
+            //    }
+            //}
+
+
+            if (enters.Count > 0)
+            {
+                PlaceCollisionHolder(ray.origin + ray.direction * length, enters[0].point);
+            }
+                
+        }
+    }
+
+
+    private void PlaceCollisionHolder(params Vector3[] points)
+    {
+        Vector3 temp = Vector3.Cross(points[0] - points[1], Vector3.forward);
+        if (Vector2.Dot(temp, maskCol.bounds.center - temp) < 0)
+        {
+            temp = points[0];
+            points[0] = points[1];
+            points[1] = temp;
+        }
+
+        verts.AddRange(new Vector3[] { points[0], points[1] - depth, points[1] + depth });
+        tris.AddRange(new int[] { verts.Count - 1, verts.Count - 2, verts.Count - 3 });
+
     }
 }

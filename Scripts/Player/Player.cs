@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class Player : MonoBehaviour
 {
@@ -16,6 +17,8 @@ public class Player : MonoBehaviour
     private float jumpForce;
     [SerializeField]
     private float jumpDetectLength;
+    [SerializeField]
+    private float jumpTreshHold;
 
     [SerializeField]
     private Collider colMask;
@@ -23,8 +26,14 @@ public class Player : MonoBehaviour
 
     [SerializeField]
     private LayerMask jumpableLayers;
+    [SerializeField]
+    private float fallMult = 1.5f;
+
+    [SerializeField]
+    private Text fpsText;
 
     //private int keyCount;
+    private int jumpCount = 0;
 
     private void Start()
     {
@@ -33,10 +42,20 @@ public class Player : MonoBehaviour
     }
     private void Update()
     {
-        float deltaTime = Time.deltaTime;
-        if(Input.GetKey(KeyCode.A))
+        if (jumpCount > 0 && Input.GetKeyDown(KeyCode.W))
         {
-            if(rb.velocity.x > -maxSpeed)
+            jumpCount--;
+            rb.velocity = new Vector3(rb.velocity.x, jumpForce, 0f);
+        }
+
+        fpsText.text = "" + (int)(1 / Time.deltaTime);
+    }
+    private void FixedUpdate()
+    {
+        float deltaTime = Time.fixedDeltaTime;
+        if (Input.GetKey(KeyCode.A))
+        {
+            if (rb.velocity.x > -maxSpeed)
                 rb.velocity -= deltaTime * speed * Vector3.right;
         }
         else if (Input.GetKey(KeyCode.D))
@@ -48,10 +67,23 @@ public class Player : MonoBehaviour
         {
             rb.velocity -= deltaTime * drag * rb.velocity.x * Vector3.right;
         }
-        if (Input.GetKeyDown(KeyCode.Space) && Physics.OverlapBox(transform.position - Vector3.up * .3f, transform.localScale * .4f, transform.rotation, jumpableLayers).Length > 0)
+
+        if (rb.velocity.y < 0)
         {
-            rb.velocity += jumpForce * Vector3.up;
+            rb.velocity += fallMult * deltaTime * Physics.gravity;
         }
+
+        bool hit = Physics.Raycast(transform.position, Vector3.down, jumpDetectLength, jumpableLayers);
+        if (hit && jumpCount <= 0)
+        {
+            jumpCount = 1;
+        }
+        else if (!hit && jumpCount > 0)
+        {
+            StartCoroutine(AfterJump());
+        }
+
+
     }
 
     private void OnTriggerEnter(Collider collision)
@@ -61,19 +93,10 @@ public class Player : MonoBehaviour
             PauseMenu.main.WinScreenPop();
         }
     }
-        //}
-        //private void OnTriggerExit2D(Collider2D collision)
-        //{
-        //    if (collision.gameObject.layer == 7)
-        //        gameObject.layer = 8;
-        //}
 
-        //private void OnCollisionEnter2D(Collision2D collision)
-        //{
-        //    if (collision.gameObject.tag == "door" && keyCount > 0)
-        //    {
-        //        keyCount--;
-        //        Destroy(collision.gameObject);
-        //    }
-        //}
+    IEnumerator AfterJump()
+    {
+        yield return new WaitForSeconds(jumpTreshHold);
+        jumpCount--;
+    }
 }
