@@ -145,8 +145,11 @@ public class FoldController : MonoBehaviour
             }
             else
                 PauseMenu.SetResume(true);
+            //Quaternion.iden
 
             keyCol.enabled = CheckIn(backCol, keyCol.transform) <= 0;
+
+
             Color c = keySR.color;
             if (keyCol.enabled)
                 c.a = 1f;
@@ -154,6 +157,7 @@ public class FoldController : MonoBehaviour
                 c.a = .5f;
             keySR.color = c;
 
+            InvokeFoldEffecteds();
             PlaceCollisionHolders();
             if(verts.Count > 0)
             {
@@ -382,5 +386,28 @@ public class FoldController : MonoBehaviour
         verts.AddRange(new Vector3[] { points[0], points[1] - depth, points[1] + depth });
         tris.AddRange(new int[] { verts.Count - 1, verts.Count - 2, verts.Count - 3 });
 
+    }
+
+    private void InvokeFoldEffecteds()
+    {
+        Bounds bounds = backCol.bounds;
+        Collider[] colliders = Physics.OverlapBox(bounds.center, bounds.extents, backCol.transform.rotation);
+        //List<IFoldEffected> foldEffecteds = new();
+
+        foreach (Collider c in colliders)
+            c.GetComponent<Folded.IFoldEffected>()?.FoldedOnFull();
+
+    }
+}
+
+
+
+
+namespace Folded
+{
+    public interface IFoldEffected
+    {
+        public void FoldedOnFull();
+        public void FoldedOnHalf();
     }
 }

@@ -5,7 +5,7 @@ using UnityEngine.Tilemaps;
 
 namespace Folded.Core
 {
-	public abstract class BugAbstractor : MonoBehaviour
+	public abstract class BugAbstractor : MonoBehaviour, Folded.IFoldEffected
 	{
         /*
 		 * STATIC VARIABLES
@@ -13,14 +13,16 @@ namespace Folded.Core
 
         /// <summary>All bugs in the active scenes which are enabled are restored here.</summary>
         private static List<BugAbstractor> allBugs = new();
-        /// <summary>Smash tiles of bugs will be applied to this map.</summary>
-        private static Tilemap tileMap;
+
+        [SerializeField, Tooltip("Smash tiles of bugs will be applied to this map.")]
+        private Tilemap tileMap;
         /*
          * SPECIAL VARIABLES
          */
         /// <summary>Coordinate Change Per Second</summary>
-        private float speed;
-        /// <summary>Tiles that this bug is using when it is smashed.</summary>
+        public float speed;
+      
+        [SerializeField, Tooltip("Tiles that this bug is using when it is smashed.")]
         private RuleTile tileSet;
 
         /*
@@ -39,6 +41,8 @@ namespace Folded.Core
         {
             sr = GetComponent<SpriteRenderer>();
             rb = GetComponent<Rigidbody>();
+
+            OverStart();
         }
         
         private void OnEnable()
@@ -58,8 +62,23 @@ namespace Folded.Core
         {
             Vector3Int cellPos = tileMap.WorldToCell(transform.position);
             tileMap.SetTile(cellPos, tileSet);
-            //TODO - Sound and (maybe) visual effects that occurs when bug is smashed.
+            ////TODO - Sound and (maybe) visual effects that occurs when bug is smashed.
             Destroy(gameObject);
+            Debug.Log("smashed");
+        }
+
+        /*
+         * OVERRIDE FUNCTIONS
+         */
+        public abstract void OverStart();
+
+        public void FoldedOnFull()
+        {
+            Smash();
+        }
+
+        public void FoldedOnHalf()
+        {
         }
     }
 }
