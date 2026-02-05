@@ -7,6 +7,7 @@ using System.Collections;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using System.Linq;
+using UnityEngine.EventSystems;
 
 namespace Folded.GUI
 {
@@ -34,6 +35,7 @@ namespace Folded.GUI
 
             return h;
         }
+
 
         public static List<GameObject> FitPrefabToRect(RectTransform parentRect, float aspectRatio, int itemCount, GameObject prefab)
         {
@@ -89,19 +91,21 @@ namespace Folded.GUI
 
         public static void FoldToScene(Vector2 anchorMin, Vector2 anchorMax, Vector2 dir, float speed, string sceneName)
         {
-            Debug.Log("firstPos: " + firstPos);
 
             var objects = UnityEngine.Object.FindObjectsByType(typeof(GameObject), FindObjectsSortMode.None);
-            foreach(GameObject obj in objects.Cast<GameObject>())
-                if (obj.GetComponent<Camera>() == null && obj.GetComponent<RectTransform>() == null)
-                    GameObject.Destroy(obj);
 
 
             paper = FoldUI(anchorMin, anchorMax, dir, speed, new List<Action> { EndFirstScene });
 
             foreach (GameObject obj in objects.Cast<GameObject>())
-                if (obj.GetComponent<RectTransform>() != null)
-                    GameObject.Destroy(obj);
+                if (obj != null && obj.GetComponent<AudioListener>())
+                        GameObject.DestroyImmediate(obj.GetComponent<AudioListener>());
+                else if (obj != null && obj.GetComponent<Camera>() == null && obj.transform != paper) 
+                    GameObject.DestroyImmediate(obj);
+
+            //foreach (GameObject obj in objects.Cast<GameObject>())
+            //    if (obj.GetComponent<RectTransform>() != null)
+            //        GameObject.DestroyImmediate(obj);
 
             firstScene = SceneManager.GetActiveScene();
             firstCam = Camera.main;
@@ -110,7 +114,6 @@ namespace Folded.GUI
             nextScene = SceneManager.LoadScene(sceneName, new LoadSceneParameters(LoadSceneMode.Additive));
             SceneManager.sceneLoaded += SceneLoaded;
 
-            //Debug.Break();
 
         }
 
@@ -127,7 +130,6 @@ namespace Folded.GUI
                     if (obj.CompareTag("MainCamera"))
                     {
                         Camera cam = obj.GetComponent<Camera>();
-                        firstCam.GetComponent<AudioListener>().enabled = false;
                         firstCam.gameObject.AddComponent<SceneAdapter>().Set(cam, paper);
                     }
                 }
@@ -172,6 +174,7 @@ namespace Folded.GUI
             dir.Normalize();
 
             RenderTexture rt = new((int)(Screen.width * (anchorMax.x - anchorMin.x)), (int)(Screen.height * (anchorMax.y - anchorMin.y)), 0);                         // Creates Render Texture to screen shot.
+            rt.depthStencilFormat = UnityEngine.Experimental.Rendering.GraphicsFormat.D32_SFloat_S8_UInt;
             MeshFilter mf = new GameObject("Folding Object").AddComponent<MeshFilter>();    // Creates object and a mesh filter to store mesh.                     // Creates Render Texture to screen shot.
             MeshFilter bgMf = new GameObject("BG Folding Object").AddComponent<MeshFilter>();    // Creates object and a mesh filter to store mesh.
             mf.gameObject.AddComponent<MeshRenderer>().material.mainTexture = rt;           // Creates mesh renderer and apply them the texture.
@@ -182,6 +185,8 @@ namespace Folded.GUI
             bgMf.transform.SetParent(mf.transform);
             bgMf.transform.localPosition = Vector3.zero;
             mf.GetComponent<MeshRenderer>().material.shader = Shader.Find("UI/Default");
+
+            //Debug.Break();
 
             /*
              * Takes screenshot of the screen.

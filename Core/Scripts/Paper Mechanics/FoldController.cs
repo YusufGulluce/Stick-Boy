@@ -1,11 +1,11 @@
 ﻿using UnityEngine;
 using System.Collections;
-using System;
+using System.Linq;
 using System.Collections.Generic;
+using UnityEditor.Tilemaps;
 
 public class FoldController : MonoBehaviour
 {
-    //public static FoldController main;
     public static List<FoldController> pages = new();
 
     [SerializeField]
@@ -17,16 +17,11 @@ public class FoldController : MonoBehaviour
     [SerializeField]
     private Transform pageMask;
 
-    [SerializeField]
     private Transform playerTr;
     [SerializeField]
-    private Collider backCol;
+    private BoxCollider backCol;
     [SerializeField]
     private Collider maskCol;
-    [SerializeField]
-    private Collider keyCol;
-    [SerializeField]
-    private SpriteRenderer keySR;
     [SerializeField]
     private LayerMask playerLayer;
     [SerializeField]
@@ -49,20 +44,24 @@ public class FoldController : MonoBehaviour
     private float startDistance;
     private Vector2 foldVector;
     private float foldableLength;
+    public float foldableDeadzone;
 
     private bool folding;
     private bool canExitEdit;
 
+    //Scale Variables
+    private Vector3 pageScale;
+    private Vector3 pageLossyScale;
 
     [SerializeField]
     private Vector2 foldDirection;
+
+    private int pageIndex;
 
     private delegate Vector2 FoldPosCalculator(Vector2 pos);
 
     public void EditMode(bool mode)
     {
-        //if (canExitEdit || mode)
-        //{
         if (!mode)
             foreach (CollisionMask c in CollisionMask.all)
                 c.UpdateArea();
@@ -76,26 +75,32 @@ public class FoldController : MonoBehaviour
             PauseMenu.SetResume(false);
             enabled = false;
         }
-        //}
     }
 
     private void Start()
     {
+        playerTr = Player.main.transform;
+
+        pageIndex = pages.Count;
+        Debug.Log(pageIndex);
         pages.Add(this);
         foldDirection.Normalize();
 
         folding = false;
 
+        pageScale = backCol.transform.localScale;
+        pageLossyScale = backCol.transform.lossyScale;
+
         pageCenterStart = backPage.position;
-        foldableLength = backPage.localScale.x;
+        foldableLength = pageScale.x - foldableDeadzone;
 
         if (mc.sharedMesh == null)
             mc.sharedMesh = new();
+
     }
     private void OnDestroy()
     {
-        if (pages != null)
-            pages.RemoveRange(0, pages.Count);
+        pages?.RemoveRange(0, pages.Count);
     }
 
     public void StartFold(Vector3 position, Vector2 vector)
@@ -111,14 +116,14 @@ public class FoldController : MonoBehaviour
 
             Transform temp = new GameObject().transform;
             temp.position = foldPointStart;
-            temp.SetParent(backPage, true);
-            foldPointStart = (Vector2)temp.localPosition * frontPage.localScale.y;
-            foldPointStart.x *= frontPage.localScale.x / frontPage.localScale.y;
+            temp.SetParent(backCol.transform, true);
+            foldPointStart = (Vector2)temp.localPosition * pageScale.y;
+            foldPointStart.x *= pageScale.x / pageScale.y;
             foldPointStart += pageCenterStart;
             Destroy(temp.gameObject);
             folding = true;
 
-            foldPointStart.x = backPage.localScale.x * foldDirection.x * .5f + pageCenterStart.x;
+            foldPointStart.x = pageScale.x * foldDirection.x * .5f + pageCenterStart.x;
 
             Vector2 vect = pageCenterStart - foldPointStart;
             startAngle = Vector2.SignedAngle(foldDirection, vect);
@@ -138,24 +143,7 @@ public class FoldController : MonoBehaviour
                 count = CheckPlayerIn(backCol);
             else
                 count = CheckPlayerIn(maskCol);
-
-            if (count > 0)
-            {
-                PauseMenu.SetResume(false);
-            }
-            else
-                PauseMenu.SetResume(true);
-            //Quaternion.iden
-
-            keyCol.enabled = CheckIn(backCol, keyCol.transform) <= 0;
-
-
-            Color c = keySR.color;
-            if (keyCol.enabled)
-                c.a = 1f;
-            else
-                c.a = .5f;
-            keySR.color = c;
+            PauseMenu.SetResume(count <= 0);
 
             InvokeFoldEffecteds();
             PlaceCollisionHolders();
@@ -191,13 +179,7 @@ public class FoldController : MonoBehaviour
             count = CheckPlayerIn(maskCol);
             //Debug.Log("its mask");
         }
-
-        if (count > 0)
-        {
-            PauseMenu.SetResume(false);
-        }
-        else
-            PauseMenu.SetResume(true);
+        PauseMenu.SetResume(count <= 0);
     }
 
     private void SetBack(Vector2 point, Transform tr)
@@ -211,7 +193,7 @@ public class FoldController : MonoBehaviour
         angle += (foldDirection.x - 1f) * 90f;
         point += new Vector2(Mathf.Cos(angle * Mathf.PI / 180f), Mathf.Sin(angle * Mathf.PI / 180f)) * startDistance;
 
-        tr.position = point;
+        tr.position = new (point.x, point.y, tr.position.z);
     }
 
     private void SetMask(Vector2 point_,  Transform tr)
@@ -312,11 +294,10 @@ public class FoldController : MonoBehaviour
     private void PlaceCollisionHolders()
     {
         float cos = backPage.transform.rotation.eulerAngles.z;
-        Debug.Log(cos);
         float sin = Mathf.Sin(cos * Mathf.PI / 180f);
         cos = Mathf.Cos(cos * Mathf.PI / 180f);
-        float x = backPage.transform.lossyScale.x / 2;
-        float y = backPage.transform.lossyScale.y / 2;
+        float x = pageLossyScale.x / 2;
+        float y = pageLossyScale.y / 2;
 
         Vector3[] corners =
             {
@@ -383,20 +364,35 @@ public class FoldController : MonoBehaviour
             points[1] = temp;
         }
 
-        verts.AddRange(new Vector3[] { points[0], points[1] - depth, points[1] + depth });
-        tris.AddRange(new int[] { verts.Count - 1, verts.Count - 2, verts.Count - 3 });
+        verts.AddRange(new Vector3[] { points[0] - depth, points[0] + depth, points[1] - depth, points[1] + depth });
+        tris.AddRange(new int[] { verts.Count - 4, verts.Count - 3, verts.Count - 1, verts.Count - 4, verts.Count - 1, verts.Count - 2});
 
     }
 
     private void InvokeFoldEffecteds()
     {
-        Bounds bounds = backCol.bounds;
-        Collider[] colliders = Physics.OverlapBox(bounds.center, bounds.extents, backCol.transform.rotation);
-        //List<IFoldEffected> foldEffecteds = new();
+        // 2. Calculate the center in world space (handles offset colliders)
+        Vector3 center = backCol.transform.TransformPoint(backCol.center);
+
+        // 3. Calculate half-extents based on local size and global scale
+        // We use Abs() to handle cases where the object might have negative scale
+        Vector3 size = Vector3.Scale(backCol.size, backCol.transform.lossyScale);
+        Vector3 halfExtents = new Vector3(Mathf.Abs(size.x), Mathf.Abs(size.y), Mathf.Abs(size.z)) * 0.5f;
+
+        // 4. Perform the OverlapBox using the object's actual rotation
+        Collider[] colliders = Physics.OverlapBox(center, halfExtents, backCol.transform.rotation);
+
+        List<Folded.IFoldEffected> effecteds = new();
 
         foreach (Collider c in colliders)
-            c.GetComponent<Folded.IFoldEffected>()?.FoldedOnFull();
+            if(c.GetComponent<Folded.IFoldEffected>() != null)
+            {
+                effecteds.Add(c.GetComponent<Folded.IFoldEffected>());
+                Debug.Log(c.name);
+            }
 
+
+        Folded.IFoldEffected.ChangeFolds(effecteds, pageIndex);
     }
 }
 
@@ -407,7 +403,61 @@ namespace Folded
 {
     public interface IFoldEffected
     {
-        public void FoldedOnFull();
-        public void FoldedOnHalf();
+        public static List<IFoldEffected>[] onFolds = {new(), new() };
+        public static void FoldOffAll(int page)
+        {
+            if(onFolds[page] != null)
+                while(onFolds[page].Count > 0)
+                {
+                    onFolds[page][0].FoldedOff();
+                    onFolds[page].RemoveAt(0);
+                }
+        }
+        public static void ChangeFolds(List<IFoldEffected> newFoldList, int page)
+        {
+            // 1. Safety Checks: Ensure lists are not null
+            if (onFolds[page] == null) onFolds[page] = new List<IFoldEffected>();
+            newFoldList ??= new List<IFoldEffected>(); // Treat null input as an empty list
+
+            var currentList = onFolds[page];
+
+            // 2. Identify items to Remove:
+            // Everything currently in the list that is NOT in the new input
+            var itemsToRemove = currentList.Except(newFoldList).ToList();
+
+            // 3. Identify items to Add:
+            // Everything in the new input that is NOT currently in the list
+            var itemsToAdd = newFoldList.Except(currentList).ToList();
+
+            // 4. Process Removals (Turn Off and Remove)
+            foreach (var item in itemsToRemove)
+            {
+                item.FoldedOff();
+                // We remove from the actual list logic below, 
+                // but calling FoldedOff here handles the behavior.
+            }
+
+            // 5. Process Additions (Turn On)
+            foreach (var item in itemsToAdd)
+            {
+                item.FoldedOn();
+            }
+
+            // 6. Update the State
+            // Assign the new list directly to ensure order and contents match exactly.
+            onFolds[page] = new List<IFoldEffected>(newFoldList);
+        }
+
+        public void FoldApply(int page)
+        {
+            if (!onFolds[page].Contains(this))
+            {
+                onFolds[page].Add(this);
+                FoldedOn();
+            }
+        }
+
+        public void FoldedOn();
+        public void FoldedOff();
     }
 }

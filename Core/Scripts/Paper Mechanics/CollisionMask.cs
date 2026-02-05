@@ -8,24 +8,42 @@ public class CollisionMask : MonoBehaviour
     public static List<CollisionMask> all = new();
 
     [SerializeField]
-    private Collider area;
+    public Collider area;
+    //[SerializeField]
+    //private string ignoreTag;
     [SerializeField]
-    private string ignoreTag;
+    private Transform ignoreParentObject;
 
     Bounds bound;
     bool isIn = false;
     private readonly List<int> IDs = new();
 
+    public static CollisionMask[] InCollsionMask(Transform check)
+    {
+        List<CollisionMask> list = new();
+
+         foreach (CollisionMask mask in all)
+            if (mask.ignoreParentObject == check)
+                list.Add(mask);
+        return list.ToArray();
+    }
+
     private void Start()
     {
-        GameObject[] objects = GameObject.FindGameObjectsWithTag(ignoreTag);
+        //List<GameObject> objects = new (GameObject.FindGameObjectsWithTag(ignoreTag));
 
-        foreach (GameObject c in objects)
-            foreach(Collider cl in c.GetComponents<Collider>())
-            {
-                cl.hasModifiableContacts = true;
-                IDs.Add(cl.GetInstanceID());
-            }
+        //foreach (GameObject c in objects)
+        //    foreach(Collider cl in c.GetComponents<Collider>())
+        //    {
+        //        cl.hasModifiableContacts = true;
+        //        IDs.Add(cl.GetInstanceID());
+        //    }
+
+        foreach(Collider c in ignoreParentObject.gameObject.GetComponentsInChildren<Collider>())
+        {
+            c.hasModifiableContacts = true;
+            IDs.Add(c.GetInstanceID());    
+        }
 
         bound = area.bounds;
 
@@ -62,8 +80,13 @@ public class CollisionMask : MonoBehaviour
 
     public void OverlapPoint(Vector3 point)
     {
-        isIn = bound.Contains(point);
+        
+        isIn = Contains(point);
+    }
 
+    public bool Contains(Vector3 point)
+    {
+        return point == area.ClosestPoint(point);
     }
 
     public void UpdateArea()

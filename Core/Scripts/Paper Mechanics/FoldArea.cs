@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
+[RequireComponent(typeof(SpriteRenderer))]
 public class FoldArea : MonoBehaviour
 {
     [SerializeField]
@@ -13,6 +14,7 @@ public class FoldArea : MonoBehaviour
     private Texture2D[] cursorTextures;
 
     private static Texture2D[] cursorTexs = null;
+    private SpriteRenderer sr;
     private bool drag = false;
 
     private void Start()
@@ -23,13 +25,15 @@ public class FoldArea : MonoBehaviour
             cursorTexs = cursorTextures;
             Cursor.SetCursor(cursorTexs[2], Vector2.zero, CursorMode.Auto);
         }
-
+        sr = GetComponent<SpriteRenderer>();
+        sr.enabled = false;
     }
     private void OnMouseDown()
     {
         controller.StartFold(transform.position, foldDirection);
         Cursor.SetCursor(cursorTexs[1], Vector2.zero, CursorMode.Auto);
         drag = true;
+        sr.enabled = false;
     }
 
     private void OnMouseUp()
@@ -38,17 +42,20 @@ public class FoldArea : MonoBehaviour
         Physics.SyncTransforms();
         Cursor.SetCursor(cursorTexs[0], Vector2.zero, CursorMode.Auto);
         drag = false;
+        sr.enabled = false;
     }
 
     private void OnMouseEnter()
     {
         if(!drag)
         Cursor.SetCursor(cursorTexs[0], Vector2.zero, CursorMode.Auto);
+        sr.enabled = !drag && PauseMenu.isPaused;
     }
 
     private void OnMouseExit()
     {
         if(!drag)
         Cursor.SetCursor(cursorTexs[2], Vector2.zero, CursorMode.Auto);
+        sr.enabled = false;
     }
 }

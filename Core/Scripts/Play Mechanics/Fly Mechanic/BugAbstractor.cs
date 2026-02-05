@@ -72,13 +72,14 @@ namespace Folded.Core
          */
         public abstract void OverStart();
 
-        public void FoldedOnFull()
+        public void FoldedOn()
         {
             Smash();
         }
 
-        public void FoldedOnHalf()
+        public void FoldedOff()
         {
+
         }
     }
 }
