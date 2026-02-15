@@ -71,7 +71,7 @@ Camera:
   far clip plane: 1000
   field of view: 60
   orthographic: 1
-  orthographic size: 12
+  orthographic size: 15
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -112,7 +112,7 @@ MonoBehaviour:
   - {fileID: 0}
   player: {fileID: 0}
   size: 15
-  reTime: 1
+  reTime: 1.5
   offset: {x: 0, y: 2}
   deadBox: {x: 2, y: 2}
   smooth: 0.234

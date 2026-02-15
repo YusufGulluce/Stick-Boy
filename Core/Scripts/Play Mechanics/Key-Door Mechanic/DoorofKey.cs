@@ -6,7 +6,7 @@ using static UnityEngine.GraphicsBuffer;
 [RequireComponent(typeof(Collider))]
 public class DoorofKey : MonoBehaviour, Folded.Core.IInteractable, Folded.IFoldEffected
 {
-    private static WaitForSeconds _waitForSeconds1 = new WaitForSeconds(1);
+    private static readonly WaitForSeconds _waitForSeconds1 = new(1);
     public static string playerTag = "Player";
     public static KeyCode openKey = KeyCode.E;
 
@@ -14,6 +14,8 @@ public class DoorofKey : MonoBehaviour, Folded.Core.IInteractable, Folded.IFoldE
 
     [SerializeField]
     private bool open;
+    [SerializeField]
+    private bool onFront = true;
 
     [Space]
 
@@ -40,9 +42,17 @@ public class DoorofKey : MonoBehaviour, Folded.Core.IInteractable, Folded.IFoldE
         //TODO - Show if door is usable or not.
     }
 
+    private void OnValidate()
+    {
+        SpriteRenderer sr = GetComponent<SpriteRenderer>();
+        sr.sortingLayerName = onFront ? "map layer" : "Default";
+        sr.sortingOrder = onFront ? -15: 0;
+    }
+
     private void Open(Player target)
     {
         //target.transform.position = new (transform.position.x, transform.position.z, target.transform.position.z);
+
         target.PlayPlayer(8); //Play portal animation.
         target.GetComponent<Rigidbody>().isKinematic = true;
         target.enabled = false;
@@ -82,7 +92,9 @@ public class DoorofKey : MonoBehaviour, Folded.Core.IInteractable, Folded.IFoldE
     //IInteractables
     public void Interact()
     {
-        if(interactable && mode != DoorMode.OutDoor)
+        Debug.Log("interacted dorr");
+        if((interactable && mode != DoorMode.OutDoor && onFront)
+            || (!onFront && mode != DoorMode.OutDoor && !FoldController.OnDesk(transform.position)))
         {
             ShowDoorOpenability();
             if (open)
@@ -92,25 +104,29 @@ public class DoorofKey : MonoBehaviour, Folded.Core.IInteractable, Folded.IFoldE
                 --KeyofDoor.keyCount;
                 open = true;
                 animator.PlaySafe(1);
+                Folded.Core.PlayerHand.main.ClearState();
             }
         }
+    }
+
+    public void ImmidiateInteract()
+    {
     }
 
     //IFoldEffecteds
     public void FoldedOn()
     {
-        if (Folded.Core.IInteractable.lastInteractable.Contains(this))
-            ((Folded.Core.IInteractable)this).RemoveInteractable();
-        interactable = false;
-
-        Debug.Log("folded on: " + name);
+        if(onFront)
+        {
+            if (Folded.Core.IInteractable.lastInteractable.Contains(this))
+                ((Folded.Core.IInteractable)this).RemoveInteractable();
+            interactable = false;
+        }
     }
 
     public void FoldedOff()
     {
         interactable = true;
-
-        Debug.Log("folded off: " + name);
     }
 
     private void OnDestroy()

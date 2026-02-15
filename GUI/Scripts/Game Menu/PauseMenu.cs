@@ -4,11 +4,15 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using System.Collections.Generic;
+using System;
 
 public class PauseMenu : MonoBehaviour
 {
     [Header("General")]
     public static PauseMenu main;
+
+    [SerializeField]
+    private GameObject leftSidedUI, rightSidedUI;
 
     [SerializeField]
     private Camera cam;
@@ -28,6 +32,9 @@ public class PauseMenu : MonoBehaviour
     private float pauseSize;
     [SerializeField]
     private float pauseZoomSpeed = .1f;
+    [SerializeField]
+    private PauseSideType sideType;
+
 
     [Space]
 
@@ -78,7 +85,7 @@ public class PauseMenu : MonoBehaviour
 
         foreach (List<Folded.IFoldEffected> onFold in Folded.IFoldEffected.onFolds)
             onFold.Clear();
-        Folded.IPauseEffected.all.Clear();
+        
         Folded.Core.IInteractable.lastInteractable.Clear();
 
     }
@@ -86,13 +93,15 @@ public class PauseMenu : MonoBehaviour
     {
         if(main == this)
             main = null;
+
+        Folded.IPauseEffected.all.Clear();
     }
     private void Update()
     {
-        if (Input.GetKeyDown(menuKey) && !isPaused)
-            Pause();
-        else if (Input.GetKeyDown(menuKey) && isPaused)
+        if (Input.GetKeyDown(menuKey) && isPaused)
             Unpause();
+        else if ((Input.GetKeyDown(menuKey) || Input.GetMouseButtonDown(0)) && !isPaused)
+            Pause();
         PauseText();
     }
 
@@ -104,22 +113,39 @@ public class PauseMenu : MonoBehaviour
         Time.timeScale = 0f;
         menu.SetActive(true);
 
-        cam.gameObject.AddComponent<PauseCamera>().Set(pauseCameraOffset, pauseSize, pauseZoomSpeed);
+
+        Vector2 offset = pauseCameraOffset;
+        offset *= sideType switch
+        {
+            PauseSideType.Dynamic => Player.main.transform.position.x > Folded.Editor.PageEditor.main.pageCenter.x ? -1 : 1,
+            PauseSideType.Right => -1,
+            _=> 1
+        };
+        leftSidedUI.SetActive(offset.x <= 0);
+        rightSidedUI.SetActive(offset.x > 0);
+
+        cam.gameObject.AddComponent<PauseCamera>().Set(
+            Folded.Editor.PageEditor.main.pageCenter + offset,
+            Folded.Editor.PageEditor.main.size.y * .6f, pauseZoomSpeed);
         cam.GetComponent<Folded.GUI.DeskCam>().Enable();
         if (FoldController.pages != null)
             foreach (FoldController page in FoldController.pages)
                 page.EditMode(true);
 
+
         foreach (Folded.IPauseEffected item in Folded.IPauseEffected.all)
+        {
             item.Pause();
+        }
     }
 
-    private void Unpause()
+    public void Unpause()
     {
         if(canResume)
         {
             cam.GetComponent<Folded.GUI.DeskCam>().AdjustTo(Vector3.forward, .2f);
             Player.main.sr.maskInteraction = SpriteMaskInteraction.None;
+            Player.main.FixMomentum();
 
             Cursor.lockState = CursorLockMode.Locked;
             isPaused = false;
@@ -222,6 +248,15 @@ public class PauseMenu : MonoBehaviour
     public void ActRestart()
     {
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    }
+
+
+    [Serializable]
+    private enum PauseSideType
+    {
+        Dynamic,
+        Left,
+        Right
     }
 }
 

@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 1126245124157334031}
   - component: {fileID: 7636319088982765958}
   - component: {fileID: 2608352492696587734}
+  - component: {fileID: -2910508753459949779}
   m_Layer: 0
   m_Name: Hand
   m_TagString: Untagged
@@ -107,15 +108,28 @@ MonoBehaviour:
   animationSpeed: 1
   animations:
   - name: Grab
-    FPS: 18
+    FPS: 12
     loop: 0
-    visibleAfterStop: 0
+    visibleAfterStop: 1
     callBackIndex: -1
     sprites:
     - {fileID: 21300000, guid: 196d2005a0035407e9d1265e5cf04007, type: 3}
     - {fileID: 21300000, guid: 288b4dc8872ea4e0fbbe5036a7682f61, type: 3}
     - {fileID: 21300000, guid: 32b44ac7305c7416f9d2b509f9eb40ea, type: 3}
+  - name: Grab
+    FPS: 12
+    loop: 0
+    visibleAfterStop: 0
+    callBackIndex: -1
+    sprites:
     - {fileID: 21300000, guid: 641c5d51c331947b890a6d21df58ed99, type: 3}
+    - {fileID: 21300000, guid: 389d4a47c163644638e5b232b57f9a37, type: 3}
+  - name: Grab
+    FPS: 3
+    loop: 1
+    visibleAfterStop: 1
+    callBackIndex: -1
+    sprites:
     - {fileID: 21300000, guid: 389d4a47c163644638e5b232b57f9a37, type: 3}
     - {fileID: 21300000, guid: ddb696a23352148dbbef26361fa7c038, type: 3}
   playOnAwake: 0
@@ -128,3 +142,21 @@ MonoBehaviour:
     sprites: []
   currIndex: 0
   callAnimationOnEnd: -1
+--- !u!114 &-2910508753459949779
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6504062286073996170}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9eb2e21eeb9554bb1b186cf89b16f666, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Folded.GUI.PlayerHand
+  maxSpeed: 10
+  accelarateTime: 10
+  keyHoldingOffset: {x: 1.5, y: 0.4}
+  grabDeadDistance: 1
+  updatePeriod: 0.1
+  state: 0

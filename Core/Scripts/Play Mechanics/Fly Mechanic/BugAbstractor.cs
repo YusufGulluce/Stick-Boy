@@ -6,7 +6,7 @@ using UnityEngine.Tilemaps;
 namespace Folded.Core
 {
 	public abstract class BugAbstractor : MonoBehaviour, Folded.IFoldEffected
-	{
+    {
         /*
 		 * STATIC VARIABLES
 		 */

@@ -264,24 +264,30 @@ MonoBehaviour:
   sr: {fileID: 0}
   groundRayGap: 0.15
   groundRayDistance: 1.45
-  pageMaskColliders:
-  - {fileID: 0}
-  - {fileID: 0}
-  collisionHolder: {fileID: 0}
-  frontMapTransform: {fileID: 0}
   speed: 60
   maxSpeed: 10
-  drag: 15
-  jumpForce: 13.5
+  passiveDrag: 1
+  stoppingDrag: 14
+  jumpForce: 13.2
   jumpDetectLength: 1.1
-  jumpTreshHold: 0.1
-  animationClip: {fileID: 1214959063799047411}
-  handAnimator: {fileID: 0}
+  jumpTreshHold: 0.15
   jumpableLayers:
     serializedVersion: 2
     m_Bits: 24576
   fallMult: 1.2
+  rotationSpeed: 0
+  rotationDeadline: 0
+  animationClip: {fileID: 1214959063799047411}
+  handAnimator: {fileID: 0}
   fpsText: {fileID: 0}
+  controllers:
+    left: 97
+    secondaryLeft: 276
+    right: 100
+    secondaryRight: 275
+    jump: 119
+    secondaryJump: 273
+    interact: 101
 --- !u!114 &1214959063799047411
 MonoBehaviour:
   m_ObjectHideFlags: 0

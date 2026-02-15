@@ -1,4 +1,6 @@
+using System;
 using System.Collections;
+//using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -13,26 +15,30 @@ public class Player : MonoBehaviour
     [HideInInspector]
     public SpriteRenderer sr;
 
+    [Header("Ground Check Parameters")]
     [SerializeField]
     private float groundRayGap;
     [SerializeField]
     private float groundRayDistance;
-    private bool onGround = false;
 
-    [SerializeField]
-    private Collider[] pageMaskColliders;
-    [SerializeField]
-    private Collider collisionHolder;
-    [SerializeField]
-    private Transform frontMapTransform;
+    //[Header("External Components")]
+    //[SerializeField]
+    //private Collider[] pageMaskColliders;
+    //[SerializeField]
+    //private Collider collisionHolder;
+    //[SerializeField]
+    //private Transform frontMapTransform;
 
-    [Space]
 
+    [Header("Movement Parameters")]
     [SerializeField]
     private float speed;
     [SerializeField]
     private float maxSpeed;
     [SerializeField]
+    private float passiveDrag;
+    [SerializeField]
+    private float stoppingDrag;
     private float drag;
 
     [Space]
@@ -47,6 +53,18 @@ public class Player : MonoBehaviour
     [Space]
 
     [SerializeField]
+    private LayerMask jumpableLayers;
+    [SerializeField]
+    private float fallMult = 1.5f;
+
+    [Space]
+
+    [SerializeField, Range(0f, 1f), Tooltip("It is using Lerp function so value must be between 0 and 1.")]
+    private float rotationSpeed;
+    [SerializeField]
+    private float rotationDeadline;
+
+    [Header("Animators")]
     public ManuelAnimationClip animationClip;
 
     [Space]
@@ -56,26 +74,27 @@ public class Player : MonoBehaviour
     //[SerializeField]
     //private Collider colMask;
 
-    [Space]
-
-    [SerializeField]
-    private LayerMask jumpableLayers;
-    [SerializeField]
-    private float fallMult = 1.5f;
 
     [Space]
 
     [SerializeField]
     private Text fpsText;
 
-    //private int keyCount;
+    [Header("Controls")]
+    [SerializeField]
+    private PlayerControllerKeys controllers;
+
     private int jumpCount = 0;
-    private float oldXSpeed = 0f;
+    //private int keyCount;
+    //private float oldXSpeed = 0f;
+    //private Vector3 momentum = Vector3.zero;
 
     private void Awake()
     {
         if (main == null)
             main = this;
+
+        drag = passiveDrag;
     }
 
     private void Start()
@@ -86,53 +105,67 @@ public class Player : MonoBehaviour
 
     private void Update()
     {
-        if(Time.timeScale > 0)
+        if (Time.timeScale > 0)
         {
             CheckAnimation();
             CheckDirection();
         }
-        if (jumpCount > 0 && Input.GetKeyDown(KeyCode.W))
+        else
+            TryToUnpause();
+        if (jumpCount > 0 && CheckJumpDown())
         {
             jumpCount--;
             rb.linearVelocity = new Vector3(rb.linearVelocity.x, jumpForce, 0f);
         }
         //
-        if(fpsText != null)
-            fpsText.text = "" + (int)(1 / Time.deltaTime);
+        //if(fpsText != null)
+        //    fpsText.text = "10x" + (int)(.01f / Time.deltaTime);
 
         CheckInteraction();
+
+        
+        if ((CheckLeftUp() && rb.linearVelocity.x < 0f)
+            || (CheckRightUp() && rb.linearVelocity.x > 0f))
+            drag = stoppingDrag;
     }
 
     private void FixedUpdate()
     {
         
         float deltaTime = Time.fixedDeltaTime;
-        if (Input.GetKey(KeyCode.A))
+        if (CheckLeft())
         {
             if (rb.linearVelocity.x > -maxSpeed)
-                rb.linearVelocity -= (rb.linearVelocity.x > 0f ? 2f: 1f) * deltaTime * speed * Vector3.right ;
+                rb.linearVelocity += deltaTime * speed * (rb.linearVelocity.x > 0 ? 2f: 1f) * Vector3.left;
         }
-        else if (Input.GetKey(KeyCode.D))
+        else if (CheckRight())
         {
             if (rb.linearVelocity.x < maxSpeed)
-                rb.linearVelocity -= (rb.linearVelocity.x < 0f ? 2f : 1f) * deltaTime * speed * Vector3.left;
+                rb.linearVelocity += deltaTime * speed * (rb.linearVelocity.x < 0 ? 2f : 1f) * Vector3.right;
         }
         else
         {
             rb.linearVelocity -= deltaTime * drag * rb.linearVelocity.x * Vector3.right;
+            if(drag > passiveDrag)
+            {
+                drag -= deltaTime * 10f;
+                if (drag < passiveDrag)
+                    drag = passiveDrag;
+            }
         }
 
-        if (rb.linearVelocity.y < 0 || !Input.GetKey(KeyCode.W))
+        if (rb.linearVelocity.y < 0 || !CheckJump())
         {
             rb.linearVelocity += fallMult * deltaTime * Physics.gravity;
         }
 
         CheckGround();
+        CheckRotation();
+        CheckDeadJump();
     }
 
     private void CheckGround()
     {
-
         rb.useGravity = true;
 
         if(rb.linearVelocity.y <= 0f)
@@ -157,7 +190,7 @@ public class Player : MonoBehaviour
                         }
                         bool _go = true;
                         foreach (CollisionMask mask in masks)
-                            if (mask && mask.Contains(hit.transform.position))
+                            if (mask && mask.Contains(hit.point))
                             {
                                 _go = false;
                                 break;
@@ -175,6 +208,7 @@ public class Player : MonoBehaviour
 
                     if (go)
                     {
+                        drag = stoppingDrag;
                         jumpCount = 1;
                         rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, 0f);
                         rb.useGravity = false;
@@ -199,29 +233,37 @@ public class Player : MonoBehaviour
         }
         else if (animationClip.currIndex == 6)
             animationClip.PlaySafe(7);
-        else if (!Input.GetKey(KeyCode.A) && !Input.GetKey(KeyCode.D) && animationClip.currIndex != 0 && animationClip.currIndex != 3 && animationClip.currIndex != 7)
+        else if (!CheckLeft() && !CheckRight() && animationClip.currIndex != 0 && animationClip.currIndex != 3 && animationClip.currIndex != 7)
             animationClip.PlaySafe(3);
-        else if ((Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.D)) && (animationClip.currIndex != 1 && animationClip.currIndex != 2 && animationClip.currIndex != 7))
+        else if ((CheckLeft() || CheckRight()) && (animationClip.currIndex != 1 && animationClip.currIndex != 2 && animationClip.currIndex != 7))
             animationClip.PlaySafe(1);
     }
 
     private void CheckDirection()
     {
-        if (Input.GetKeyDown(KeyCode.A))
+        if (CheckLeftDown())
             sr.flipX = true;
-        else if (Input.GetKeyDown(KeyCode.D))
+        else if (CheckRightDown())
             sr.flipX = false;
-        else if (Input.GetKeyUp(KeyCode.A) && Input.GetKey(KeyCode.D))
+        else if (CheckLeftUp() && CheckRight())
             sr.flipX = false;
-        else if (Input.GetKeyUp(KeyCode.D) && Input.GetKey(KeyCode.A))
+        else if (CheckRightUp() && CheckLeft())
             sr.flipX = true;
     }
 
     private void CheckInteraction()
     {
-        if (Input.GetKeyDown(KeyCode.E))
+        if (CheckInteractDown())
             if (Folded.Core.IInteractable.lastInteractable != null && Folded.Core.IInteractable.lastInteractable.Count > 0)
                 Folded.Core.IInteractable.lastInteractable[^1].Interact();
+    }
+
+    private void CheckRotation()
+    {
+        if(transform.rotation.eulerAngles.z != 0f)
+        {
+            transform.rotation = Quaternion.identity;
+        }
     }
 
     private void OnTriggerEnter(Collider collision)
@@ -235,10 +277,29 @@ public class Player : MonoBehaviour
     }
 
 
-    IEnumerator AfterJump()
+    private float deadJumpTimer = 0f;
+    private void CheckDeadJump()
     {
-        yield return new WaitForSeconds(jumpTreshHold);
-        jumpCount--;
+        if (jumpCount > 0)
+        {
+            if (rb.useGravity)
+            {
+                deadJumpTimer += Time.fixedDeltaTime;
+                if (deadJumpTimer >= jumpTreshHold)
+                    jumpCount = 0;
+            }
+            else
+            {
+                deadJumpTimer = 0f;
+            }
+        }
+        else
+            deadJumpTimer = 0f;
+    }
+
+    public void FixMomentum()
+    {
+        rb.linearVelocity = Quaternion.AngleAxis(transform.rotation.eulerAngles.z, Vector3.forward) * rb.linearVelocity;
     }
 
     public void PlayPlayer(int animationIndex)
@@ -253,6 +314,85 @@ public class Player : MonoBehaviour
         handAnimator.transform.position = transform.position;
         handAnimator.Play(animationIndex);
     }
+
+    #region Check Key Functions
+    private bool CheckJumpDown()
+    {
+        return Input.GetKeyDown(controllers.jump) || Input.GetKeyDown(controllers.secondaryJump);
+    }
+    private bool CheckJump()
+    {
+        return Input.GetKey(controllers.jump) || Input.GetKey(controllers.secondaryJump);
+    }
+
+    private bool CheckLeft()
+    {
+        return Input.GetKey(controllers.left) || Input.GetKey(controllers.secondaryLeft);
+    }
+    private bool CheckRight()
+    {
+        return Input.GetKey(controllers.right) || Input.GetKey(controllers.secondaryRight);
+    }
+    private bool CheckLeftUp()
+    {
+        return Input.GetKeyUp(controllers.left) || Input.GetKeyUp(controllers.secondaryLeft);
+    }
+    private bool CheckRightUp()
+    {
+        return Input.GetKeyUp(controllers.right) || Input.GetKeyUp(controllers.secondaryRight);
+    }
+    private bool CheckLeftDown()
+    {
+        return Input.GetKeyDown(controllers.left) || Input.GetKeyDown(controllers.secondaryLeft);
+    }
+    private bool CheckRightDown()
+    {
+        return Input.GetKeyDown(controllers.right) || Input.GetKeyDown(controllers.secondaryRight);
+    }
+
+    private bool CheckInteractDown()
+    {
+        return Input.GetKeyDown(controllers.interact);
+    }
+
+    #endregion Check Key Functions
+
+    #region Pause Functions
+    private void TryToUnpause()
+    {
+        if(PauseMenu.isPaused &&( CheckJumpDown() || CheckRightDown() || CheckLeftDown()) )
+        {
+            PauseMenu.main.Unpause();
+            CheckDirection();
+        }
+    }
+    #endregion Pause Functions
+
+    #region structs
+    [Serializable]
+    private struct PlayerControllerKeys
+    {
+        [Space]
+
+        public KeyCode left;
+        public KeyCode secondaryLeft;
+
+        [Space]
+
+        public KeyCode right;
+        public KeyCode secondaryRight;
+
+        [Space]
+
+        public KeyCode jump;
+        public KeyCode secondaryJump;
+
+        [Space]
+
+        public KeyCode interact;
+
+    }
+    #endregion structs
 }
 
 namespace Folded.Core
@@ -262,14 +402,17 @@ namespace Folded.Core
         public static List<IInteractable> lastInteractable = new();
 
         public void AddInteractable()
-        {
+        {            
             lastInteractable.Add(this);
+            ImmidiateInteract();
         }
         public void RemoveInteractable()
         {
             lastInteractable.Remove(this);
         }
 
+        public void ImmidiateInteract();
         public void Interact();
+
     }
 }

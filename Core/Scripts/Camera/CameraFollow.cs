@@ -12,7 +12,7 @@ public class CameraFollow : MonoBehaviour
 
     [SerializeField]
     private float size;
-    [SerializeField]
+    [SerializeField, Tooltip("Time for camera to finish its adjusment.")]
     private float reTime;
 
     [SerializeField]
@@ -40,7 +40,7 @@ public class CameraFollow : MonoBehaviour
             Vector3 aimPos = new(0, 0, transform.position.z)
             {
                 x = Mathf.Lerp(transform.position.x, Mathf.Min(Mathf.Max(player.position.x, pages[0].position.x), pages[1].position.x), smooth),
-                y = Mathf.Lerp(transform.position.y, player.position.y + 3f, smooth)
+                y = Mathf.Lerp(transform.position.y, player.position.y + offset.y, smooth)
             };
             Camera.main.orthographicSize = Mathf.Lerp(Camera.main.orthographicSize, size, smooth);
             transform.position = aimPos;

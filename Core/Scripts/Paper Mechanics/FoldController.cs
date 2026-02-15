@@ -1,81 +1,117 @@
 ﻿using UnityEngine;
-using System.Collections;
+//using System.Collections;
 using System.Linq;
 using System.Collections.Generic;
-using UnityEditor.Tilemaps;
+//using UnityEditor.Tilemaps;
 
 public class FoldController : MonoBehaviour
 {
+    #region static variables
+
+    ///<summary>All FoldControllers</summary>
     public static List<FoldController> pages = new();
+    ///<summary>In pause mode, indicates where player start. (Front page, Back page etc.)</summary>
+    private static PlayerPlace playerPlace = PlayerPlace.Front;
+    #endregion
 
-    [SerializeField]
-    private SpriteMask spriteMask;
-    [SerializeField]
-    private Transform frontPage;
-    [SerializeField]
-    private Transform backPage;
-    [SerializeField]
-    private Transform pageMask;
+    #region general variables
+    ///<summary>Indicates the index of this controller on <see cref="pages"/> list.</summary>
+    private int pageIndex;
 
-    private Transform playerTr;
-    [SerializeField]
-    private BoxCollider backCol;
-    [SerializeField]
-    private Collider maskCol;
+
     [SerializeField]
     private LayerMask playerLayer;
     [SerializeField]
     private LayerMask obstacleLayer;
-    private bool playerInFront;
 
+    #endregion
 
-    [Header("Collision Holder")]
+    #region Components and objects
+
+    [Header("Components & Objects")]
+
     [SerializeField]
+    private Transform frontPage;
+    [SerializeField]
+    private Transform backPage;
+
+    [Space]
+
+    [SerializeField, Tooltip("Sprite mask that hides player in edit mode. \n This component is attached to back page.")]
+    private SpriteMask spriteMask;
+    [SerializeField, Tooltip("Sprite mask that hides back page when folding.")]
+    private Transform pageMask;
+
+    [SerializeField, Tooltip("Collider of back page.")]
+    private BoxCollider backCol;
+    [SerializeField, Tooltip("Collider of front page.")]
+    private BoxCollider frontCol;
+
+    [Tooltip("Collider of sprite mask that hides back page when folding.")]
+    public Collider maskCol;
+
+    [SerializeField, Tooltip("Mesh Collider of collision holder that replace obstacles when page is folded into obstacles.")]
     private MeshCollider mc;
-    [SerializeField]
-    private Vector3 depth;
-    private List<Vector3> verts = new();
-    private List<int> tris = new();
 
+    private Transform playerTr;
+    #endregion
 
-    private Vector2 foldPointStart;
-    private Vector2 pageCenterStart;
-    private float startAngle;
-    private float startDistance;
-    private Vector2 foldVector;
-    private float foldableLength;
+    #region Folding Parameters
+    [Tooltip("General folding direction of page. \n(Example: (1,0) for left page.)")]
+    public Vector2 foldDirection;
+    [Tooltip("Page doesnt fold more when its this away from mid page.")]
     public float foldableDeadzone;
 
-    private bool folding;
-    private bool canExitEdit;
-
-    //Scale Variables
+    ///<summary>Local scale of pages.</summary>
     private Vector3 pageScale;
+    ///<summary>World scale of pages.</summary>
     private Vector3 pageLossyScale;
 
-    [SerializeField]
-    private Vector2 foldDirection;
+    #endregion
 
-    private int pageIndex;
+    #region Folding Variables
+    ///<summary>Offset from mouse fold start point to folding area.</summary>
+    private Vector2 draggingOffset; //To get smoother dragging and not teleporting.
+    ///<summary>Position of folding area when it is started to fold.</summary>
+    private Vector2 foldPointStart;
+    ///<summary>Initial position of back page to remember.</summary>
+    private Vector2 pageCenterStart;
+    ///<summary>Vector of folding when it is started to fold.</summary>
+    private Vector2 foldVector;
+
+    //Calculation variables for optimization.
+    private float startAngle;
+    private float startDistance;
+    private float foldableLength;
+
+    private bool folding;
+    private bool canResume;
+
+    #endregion
+
+    #region Collision Holder Parameters;
+
+    [SerializeField, Tooltip("The z size of replaced obstacles.")]
+    private Vector3 depth;
+
+    #endregion
+
+    #region Collision Holder Variables;
+
+    ///<summary>Vertices of collision holder mesh. (For optimization.)</summary>
+    private List<Vector3> verts = new();
+    ///<summary>Triangles of collision holder mesh. (For optimization.)</summary>
+    private List<int> tris = new();
+
+    #endregion
+
+    #region delegates
 
     private delegate Vector2 FoldPosCalculator(Vector2 pos);
 
-    public void EditMode(bool mode)
-    {
-        if (!mode)
-            foreach (CollisionMask c in CollisionMask.all)
-                c.UpdateArea();
+    #endregion
 
-        if (mode)
-            CheckPlayerPage();
-        else
-        {
-            playerTr.SetParent(null);
-            spriteMask.enabled = false;
-            PauseMenu.SetResume(false);
-            enabled = false;
-        }
-    }
+    #region Behaviour Functions
 
     private void Start()
     {
@@ -92,24 +128,57 @@ public class FoldController : MonoBehaviour
         pageLossyScale = backCol.transform.lossyScale;
 
         pageCenterStart = backPage.position;
-        foldableLength = pageScale.x - foldableDeadzone;
+
+        Vector2 _dir = foldDirection;
+        _dir.Scale(pageScale);
+
+        foldableLength = _dir.magnitude - foldableDeadzone;
 
         if (mc.sharedMesh == null)
             mc.sharedMesh = new();
 
     }
+    private void Update()
+    {
+        if (folding) Folding();
+    }
+
     private void OnDestroy()
     {
         pages?.RemoveRange(0, pages.Count);
     }
+    #endregion
 
+    #region Folding Functions
+
+    //Edit Mode
+    public void EditMode(bool mode)
+    {
+        if (!mode)
+            foreach (CollisionMask c in CollisionMask.all)
+                c.UpdateArea();
+
+        if (mode)
+            CheckPlayerPlace();
+        else
+        {
+            playerTr.SetParent(null);
+            spriteMask.enabled = false;
+            PauseMenu.SetResume(false);
+            enabled = false;
+        }
+    }
+
+    //Main Folding 
     public void StartFold(Vector3 position, Vector2 vector)
     {
-        if(enabled)
+        if (enabled)
         {
             mc.sharedMesh.Clear();
             verts.Clear();
             tris.Clear();
+
+            draggingOffset = position - Camera.main.ScreenToWorldPoint(Input.mousePosition);
 
             foldPointStart = position;
             foldVector = vector;
@@ -123,7 +192,11 @@ public class FoldController : MonoBehaviour
             Destroy(temp.gameObject);
             folding = true;
 
-            foldPointStart.x = pageScale.x * foldDirection.x * .5f + pageCenterStart.x;
+            //foldPointStart.x = pageScale.x * foldDirection.x * .5f + pageCenterStart.x;
+            if (foldDirection.x != 0)
+                foldPointStart.x = pageScale.x * foldDirection.x * .5f + pageCenterStart.x;
+            else if (foldDirection.y != 0)
+                foldPointStart.y = pageScale.y * foldDirection.y * .5f + pageCenterStart.y;
 
             Vector2 vect = pageCenterStart - foldPointStart;
             startAngle = Vector2.SignedAngle(foldDirection, vect);
@@ -131,23 +204,61 @@ public class FoldController : MonoBehaviour
 
         }
     }
+    private void Folding()
+    {
+        Vector2 point0 = (Vector2)Camera.main.ScreenToWorldPoint(Input.mousePosition) + draggingOffset;
+        point0 = ClosestPoint(point0);
 
+        SetBack(point0, backPage);
+        SetMask(point0, pageMask);
+
+        int count = 0;
+        if (playerPlace == PlayerPlace.Front)
+        {
+            foreach (FoldController page in pages)
+                if (count <= 0 && playerPlace == playerPlace) count = page.CheckPlayerIn(page.backCol);
+        }
+        else if (playerPlace == PlayerPlace.Back)
+        {
+            foreach (FoldController page in pages)
+                if (count <= 0 && playerPlace == playerPlace) count = page.CheckPlayerIn(page.maskCol);
+        }
+        else if (playerPlace == PlayerPlace.Ground)
+        {
+            foreach (FoldController page in pages)
+                if (count <= 0 && playerPlace == playerPlace) count = page.CheckPlayerIn(page.maskCol);
+            count = count >= 4 ? 0 : 4;
+        }
+        PauseMenu.SetResume(count <= 0);
+    }
     public void CancelFold()
     {
-        if(enabled)
+        if (enabled)
         {
             folding = false;
 
-            int count;
-            if (playerInFront)
-                count = CheckPlayerIn(backCol);
-            else
-                count = CheckPlayerIn(maskCol);
+            int count = 0;
+            if (playerPlace == PlayerPlace.Front)
+            {
+                foreach (FoldController page in pages)
+                    if (count <= 0 && playerPlace == playerPlace) count = page.CheckPlayerIn(page.backCol);
+            }
+            else if (playerPlace == PlayerPlace.Back)
+            {
+                foreach (FoldController page in pages)
+                    if (count <= 0 && playerPlace == playerPlace) count = page.CheckPlayerIn(page.maskCol);
+            }
+            else if (playerPlace == PlayerPlace.Ground)
+            {
+                foreach (FoldController page in pages)
+                    if (count <= 0 && playerPlace == playerPlace) count = page.CheckPlayerIn(page.maskCol);
+                count = count >= 4 ? 0 : 4;
+            }
             PauseMenu.SetResume(count <= 0);
 
             InvokeFoldEffecteds();
             PlaceCollisionHolders();
-            if(verts.Count > 0)
+            if (verts.Count > 0)
             {
                 mc.sharedMesh.SetVertices(verts);
                 mc.sharedMesh.SetTriangles(tris, 0);
@@ -156,47 +267,23 @@ public class FoldController : MonoBehaviour
         }
     }
 
-    private void Update()
-    {
-        if (folding) Folding();
-    }
-
-    private void Folding()
-    {
-        Vector2 point0 = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-        point0 = ClosestPoint(point0);
-
-        SetBack(point0, backPage);
-        SetMask(point0, pageMask);
-
-        int count;
-        if (playerInFront)
-        {
-            count = CheckPlayerIn(backCol);
-        }
-        else
-        {
-            count = CheckPlayerIn(maskCol);
-            //Debug.Log("its mask");
-        }
-        PauseMenu.SetResume(count <= 0);
-    }
-
+    //Page Position Settlement
     private void SetBack(Vector2 point, Transform tr)
     {
         Vector2 currFoldPoint = point;
         currFoldPoint -= foldPointStart;
-        float angle = Vector2.SignedAngle(Vector2.left, currFoldPoint) * 2;
+
+        float angle = Vector2.SignedAngle(foldDirection, currFoldPoint) * 2;
+
         tr.rotation = Quaternion.Euler(0f, 0f, angle);
 
         angle += startAngle;
-        angle += (foldDirection.x - 1f) * 90f;
+        angle += Vector2.SignedAngle(Vector2.right, foldDirection);
         point += new Vector2(Mathf.Cos(angle * Mathf.PI / 180f), Mathf.Sin(angle * Mathf.PI / 180f)) * startDistance;
 
-        tr.position = new (point.x, point.y, tr.position.z);
+        tr.position = new(point.x, point.y, tr.position.z);
     }
-
-    private void SetMask(Vector2 point_,  Transform tr)
+    private void SetMask(Vector2 point_, Transform tr)
     {
         float d = (point_ - foldPointStart).magnitude;
 
@@ -204,30 +291,135 @@ public class FoldController : MonoBehaviour
         currFoldPoint -= foldPointStart;
         if (currFoldPoint == Vector2.zero)
             currFoldPoint = foldDirection;
-        float angle = Vector2.SignedAngle(Vector2.left, currFoldPoint);
+
+        Vector2 _dir = foldDirection;
+        _dir.Scale(_dir);
+
+        float angle = Vector2.SignedAngle(-_dir, currFoldPoint);
         tr.rotation = Quaternion.Euler(0f, 0f, angle);
 
+
         float dX = d / (2 * Mathf.Cos(angle * Mathf.PI / 180f));
-        Vector2 point = foldPointStart + Vector2.left * dX;
+        //dX = 0f;
+        Vector2 point = foldPointStart - _dir * dX;
 
         angle += startAngle;
         angle -= 180f;
-
-        point += new Vector2(Mathf.Cos(angle * Mathf.PI / 180f), Mathf.Sin(angle * Mathf.PI / 180f)) * startDistance;
+        point += (Vector2)(Quaternion.Euler(0f, 0f, angle) * _dir * startDistance);
+        //point += new Vector2(-Mathf.Sin(angle * Mathf.PI / 180f), Mathf.Cos(angle * Mathf.PI / 180f)) * startDistance;
 
         tr.position = point;
     }
 
+    //Calculation Functions
     private Vector2 ClosestPoint(Vector2 point)
     {
         float cosa = Vector2.Dot((point - foldPointStart).normalized, foldVector.normalized);
-        Vector2 ret = foldPointStart + Mathf.Min((point - foldPointStart).magnitude, Mathf.Abs(foldableLength / foldVector.normalized.x)) * cosa * foldVector.normalized;
+
+        float divisor = foldVector.x != 0f && foldVector.y != 0 ? Mathf.Sqrt(.5f) : 1f;
+
+
+        Vector2 ret = foldPointStart + Mathf.Min((point - foldPointStart).magnitude - 1f, foldableLength / divisor) * cosa * foldVector.normalized;
 
         if (Vector2.Dot(ret - foldPointStart, foldVector) <= 0)
+        {
             return foldPointStart;
+        }
         return ret;
     }
 
+    //Player Placement
+    public static bool OnDesk(Vector3 point)
+    {
+        foreach (FoldController page in pages)
+            if (page.maskCol.ClosestPoint(point) == point) return true;
+        return false;
+    }
+    public bool AbleToFold()
+    {
+        if (playerPlace == PlayerPlace.Mid)
+            return false;
+        return true;
+    }
+
+    private static void CheckPlayerPlace()
+    {
+        //Physics.SyncTransforms();
+
+        //foreach (FoldController page in pages)
+        //    if (page != null && page.SetPlayerPage()) return;
+
+        int frontCount = 0;
+        int backCount = 0;
+        int groundCount = 0;
+
+        foreach (FoldController page in pages)
+            if(page.gameObject.activeInHierarchy)
+            {
+                frontCount += page.CheckPlayerIn(page.frontCol);
+                backCount += page.CheckPlayerIn(page.backCol);
+                groundCount += page.CheckPlayerIn(page.maskCol);
+            }
+
+        if((frontCount <= 0 && backCount <= 0 ) || (groundCount >= 4))   //Player on ground. (Not touching any piece of paper.)
+        {
+
+        }
+        else if((frontCount > 0 && frontCount < 4)
+            || (backCount > 0 && backCount < 4)
+            || (groundCount > 0 && groundCount < 4))   //Player on mid. (Between any two or more different regions.)
+        {
+            playerPlace = PlayerPlace.Mid;
+            Player.main.sr.maskInteraction = SpriteMaskInteraction.None;
+
+            foreach (FoldController page in pages)
+                if (page.gameObject.activeInHierarchy)
+                {
+                    page.enabled = true;
+                    page.spriteMask.enabled = false;
+                    if((backCount <= 0 && groundCount <= 0 && page.CheckPlayerIn(page.frontCol) > 0) ||
+                        (page.CheckPlayerIn(page.backCol) > 0) || (page.CheckPlayerIn(page.maskCol) > 0))
+                    {
+                        page.enabled = false;
+                    }
+                    break;
+                }
+        }
+        else if(backCount >= 4 && groundCount <= 0)     //Player on back.
+        {
+            playerPlace = PlayerPlace.Back;
+
+            //foreach (FoldController page in pages)
+
+            foreach (FoldController page in pages)
+                if(page.gameObject.activeInHierarchy)
+                {
+                    page.spriteMask.enabled = false;
+                    page.enabled = true;
+                    if(page.CheckPlayerIn(page.backCol) > 0)
+                    {
+                        page.playerTr.SetParent(page.backPage);
+                    }
+                    break;
+                }
+        }               
+        else                                        //Player on front.
+        {
+            playerPlace = PlayerPlace.Front;
+
+            foreach (FoldController page in pages)
+            {
+                page.enabled = true;
+                page.spriteMask.enabled = true;
+            }
+        }
+
+
+        foreach (FoldController page in pages)
+            page.canResume = true;
+        PauseMenu.SetResume(true);
+
+    }
     private int CheckPlayerIn(Collider col)
     {
         Physics.SyncTransforms();
@@ -235,62 +427,98 @@ public class FoldController : MonoBehaviour
         for (int i = 0; i < 4; ++i)
         {
             Vector2 offset = Vector2.up * ((i / 2) * 2 - 1) + Vector2.right * ((i % 2) * 2 - 1);
-            if(col.ClosestPoint(playerTr.position + (Vector3)offset) == playerTr.position + (Vector3)offset)
-                count++;
-        }
-        return count;
-    }
-    private int CheckIn(Collider bigCol, Transform smlCol)
-    {
-        Physics.SyncTransforms();
-        int count = 0;
-        for (int i = 0; i < 4; ++i)
-        {
-            Vector2 offset = ((i / 2) * 2 - 1) * smlCol.localScale.y * .5f * Vector2.up + ((i % 2) * 2 - 1) * smlCol.localScale.x * .5f * Vector2.right;
-            if (bigCol.ClosestPoint(smlCol.position + (Vector3)offset) == smlCol.position + (Vector3)offset)
+            if (col.ClosestPoint(playerTr.position + (Vector3)offset) == playerTr.position + (Vector3)offset)
                 count++;
         }
         return count;
     }
 
-    private void CheckPlayerPage()
-    {
-        Physics.SyncTransforms();
 
+    public bool SetPlayerPage()
+    {
         int count = CheckPlayerIn(backCol);
-        if (count <= 0)
+        int groundCount = CheckPlayerIn(maskCol);
+        if (count <= 0 && groundCount <= 0)
+        {
             PlayerInFront();
-        else if (count < 4)
+            return false;
+        }
+        else if (groundCount >= 4)
+            PlayerInGround();
+        else if (count < 4 || (count >= 4 && groundCount > 0))
             PlayerInMid();
         else
             PlayerInBack();
-        
+        return true;
     }
+
+
 
     private void PlayerInFront()
     {
         spriteMask.enabled = true;
-        playerInFront = true;
         enabled = true;
         PauseMenu.SetResume(true);
-    }
 
+        playerPlace = PlayerPlace.Front;
+    }
     private void PlayerInMid()
     {
         spriteMask.enabled = false;
         enabled = false;
         PauseMenu.SetResume(true);
-    }
+        Player.main.sr.maskInteraction = SpriteMaskInteraction.None;
 
+        playerPlace = PlayerPlace.Mid;
+    }
     private void PlayerInBack()
     {
         spriteMask.enabled = false;
-        playerInFront = false;
         playerTr.SetParent(backPage);
         enabled = true;
         PauseMenu.SetResume(true);
+
+        playerPlace = PlayerPlace.Back;
+    }
+    private void PlayerInGround()
+    {
+        spriteMask.enabled = true;
+        enabled = true;
+        PauseMenu.SetResume(true);
+
+        playerPlace = PlayerPlace.Ground;
     }
 
+    //IFoldEffected Functions
+    private void InvokeFoldEffecteds()
+    {
+        // 2. Calculate the center in world space (handles offset colliders)
+        Vector3 center = backCol.transform.TransformPoint(backCol.center);
+
+        // 3. Calculate half-extents based on local size and global scale
+        // We use Abs() to handle cases where the object might have negative scale
+        Vector3 size = Vector3.Scale(backCol.size, backCol.transform.lossyScale);
+        Vector3 halfExtents = new Vector3(Mathf.Abs(size.x), Mathf.Abs(size.y), Mathf.Abs(size.z)) * 0.5f;
+
+        // 4. Perform the OverlapBox using the object's actual rotation
+        Collider[] colliders = Physics.OverlapBox(center, halfExtents, backCol.transform.rotation);
+
+        List<Folded.IFoldEffected> effecteds = new();
+
+        foreach (Collider c in colliders)
+            if (c.GetComponent<Folded.IFoldEffected>() != null)
+            {
+                effecteds.Add(c.GetComponent<Folded.IFoldEffected>());
+                Debug.Log(c.name);
+            }
+
+
+        Folded.IFoldEffected.ChangeFolds(effecteds, pageIndex);
+    }
+
+    #endregion
+
+    #region Collision Holder Functions
     private void PlaceCollisionHolders()
     {
         float cos = backPage.transform.rotation.eulerAngles.z;
@@ -329,9 +557,9 @@ public class FoldController : MonoBehaviour
             foreach (RaycastHit enterRH in enters)
             {
                 bool pairMatched = false;
-                foreach(RaycastHit exitRH in exits)
+                foreach (RaycastHit exitRH in exits)
                 {
-                    if(exitRH.collider == enterRH.collider)
+                    if (exitRH.collider == enterRH.collider)
                     {
                         PlaceCollisionHolder(enterRH.point, exitRH.point);
 
@@ -341,19 +569,17 @@ public class FoldController : MonoBehaviour
                     }
 
                 }
-                if(!pairMatched)
+                if (!pairMatched)
                 {
                     PlaceCollisionHolder(enterRH.point, ray.origin + ray.direction * length);
                 }
             }
             foreach (RaycastHit exitRH in exits)
             {
-                PlaceCollisionHolder( ray.origin, exitRH.point);
+                PlaceCollisionHolder(ray.origin, exitRH.point);
             }
         }
     }
-
-
     private void PlaceCollisionHolder(params Vector3[] points)
     {
         Vector3 temp = Vector3.Cross(points[0] - points[1], Vector3.forward);
@@ -365,39 +591,21 @@ public class FoldController : MonoBehaviour
         }
 
         verts.AddRange(new Vector3[] { points[0] - depth, points[0] + depth, points[1] - depth, points[1] + depth });
-        tris.AddRange(new int[] { verts.Count - 4, verts.Count - 3, verts.Count - 1, verts.Count - 4, verts.Count - 1, verts.Count - 2});
+        tris.AddRange(new int[] { verts.Count - 4, verts.Count - 3, verts.Count - 1, verts.Count - 4, verts.Count - 1, verts.Count - 2 });
 
     }
+    #endregion
 
-    private void InvokeFoldEffecteds()
+    #region enums
+    private enum PlayerPlace
     {
-        // 2. Calculate the center in world space (handles offset colliders)
-        Vector3 center = backCol.transform.TransformPoint(backCol.center);
-
-        // 3. Calculate half-extents based on local size and global scale
-        // We use Abs() to handle cases where the object might have negative scale
-        Vector3 size = Vector3.Scale(backCol.size, backCol.transform.lossyScale);
-        Vector3 halfExtents = new Vector3(Mathf.Abs(size.x), Mathf.Abs(size.y), Mathf.Abs(size.z)) * 0.5f;
-
-        // 4. Perform the OverlapBox using the object's actual rotation
-        Collider[] colliders = Physics.OverlapBox(center, halfExtents, backCol.transform.rotation);
-
-        List<Folded.IFoldEffected> effecteds = new();
-
-        foreach (Collider c in colliders)
-            if(c.GetComponent<Folded.IFoldEffected>() != null)
-            {
-                effecteds.Add(c.GetComponent<Folded.IFoldEffected>());
-                Debug.Log(c.name);
-            }
-
-
-        Folded.IFoldEffected.ChangeFolds(effecteds, pageIndex);
+        Front,
+        Back,
+        Mid,
+        Ground
     }
+    #endregion
 }
-
-
-
 
 namespace Folded
 {
