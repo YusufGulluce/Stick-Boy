@@ -337,17 +337,11 @@ public class FoldController : MonoBehaviour
     }
     public bool AbleToFold()
     {
-        if (playerPlace == PlayerPlace.Mid)
-            return false;
-        return true;
+        return enabled;
     }
 
     private static void CheckPlayerPlace()
     {
-        //Physics.SyncTransforms();
-
-        //foreach (FoldController page in pages)
-        //    if (page != null && page.SetPlayerPage()) return;
 
         int frontCount = 0;
         int backCount = 0;
