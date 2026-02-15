@@ -216,17 +216,17 @@ public class FoldController : MonoBehaviour
         if (playerPlace == PlayerPlace.Front)
         {
             foreach (FoldController page in pages)
-                if (count <= 0 && playerPlace == playerPlace) count = page.CheckPlayerIn(page.backCol);
+                if (count <= 0) count = page.CheckPlayerIn(page.backCol);
         }
         else if (playerPlace == PlayerPlace.Back)
         {
             foreach (FoldController page in pages)
-                if (count <= 0 && playerPlace == playerPlace) count = page.CheckPlayerIn(page.maskCol);
+                if (count <= 0) count = page.CheckPlayerIn(page.maskCol);
         }
         else if (playerPlace == PlayerPlace.Ground)
         {
             foreach (FoldController page in pages)
-                if (count <= 0 && playerPlace == playerPlace) count = page.CheckPlayerIn(page.maskCol);
+                if (count <= 0) count = page.CheckPlayerIn(page.maskCol);
             count = count >= 4 ? 0 : 4;
         }
         PauseMenu.SetResume(count <= 0);
@@ -241,17 +241,17 @@ public class FoldController : MonoBehaviour
             if (playerPlace == PlayerPlace.Front)
             {
                 foreach (FoldController page in pages)
-                    if (count <= 0 && playerPlace == playerPlace) count = page.CheckPlayerIn(page.backCol);
+                    if (count <= 0) count = page.CheckPlayerIn(page.backCol);
             }
             else if (playerPlace == PlayerPlace.Back)
             {
                 foreach (FoldController page in pages)
-                    if (count <= 0 && playerPlace == playerPlace) count = page.CheckPlayerIn(page.maskCol);
+                    if (count <= 0) count = page.CheckPlayerIn(page.maskCol);
             }
             else if (playerPlace == PlayerPlace.Ground)
             {
                 foreach (FoldController page in pages)
-                    if (count <= 0 && playerPlace == playerPlace) count = page.CheckPlayerIn(page.maskCol);
+                    if (count <= 0) count = page.CheckPlayerIn(page.maskCol);
                 count = count >= 4 ? 0 : 4;
             }
             PauseMenu.SetResume(count <= 0);
@@ -363,7 +363,14 @@ public class FoldController : MonoBehaviour
 
         if((frontCount <= 0 && backCount <= 0 ) || (groundCount >= 4))   //Player on ground. (Not touching any piece of paper.)
         {
+            playerPlace = PlayerPlace.Ground;
 
+            foreach (FoldController page in pages)
+                if (page.gameObject.activeInHierarchy)
+                {
+                    page.spriteMask.enabled = true;
+                    page.enabled = true;
+                }
         }
         else if((frontCount > 0 && frontCount < 4)
             || (backCount > 0 && backCount < 4)
@@ -382,7 +389,6 @@ public class FoldController : MonoBehaviour
                     {
                         page.enabled = false;
                     }
-                    break;
                 }
         }
         else if(backCount >= 4 && groundCount <= 0)     //Player on back.
@@ -400,7 +406,6 @@ public class FoldController : MonoBehaviour
                     {
                         page.playerTr.SetParent(page.backPage);
                     }
-                    break;
                 }
         }               
         else                                        //Player on front.
@@ -434,60 +439,60 @@ public class FoldController : MonoBehaviour
     }
 
 
-    public bool SetPlayerPage()
-    {
-        int count = CheckPlayerIn(backCol);
-        int groundCount = CheckPlayerIn(maskCol);
-        if (count <= 0 && groundCount <= 0)
-        {
-            PlayerInFront();
-            return false;
-        }
-        else if (groundCount >= 4)
-            PlayerInGround();
-        else if (count < 4 || (count >= 4 && groundCount > 0))
-            PlayerInMid();
-        else
-            PlayerInBack();
-        return true;
-    }
+    //public bool SetPlayerPage()
+    //{
+    //    int count = CheckPlayerIn(backCol);
+    //    int groundCount = CheckPlayerIn(maskCol);
+    //    if (count <= 0 && groundCount <= 0)
+    //    {
+    //        PlayerInFront();
+    //        return false;
+    //    }
+    //    else if (groundCount >= 4)
+    //        PlayerInGround();
+    //    else if (count < 4 || (count >= 4 && groundCount > 0))
+    //        PlayerInMid();
+    //    else
+    //        PlayerInBack();
+    //    return true;
+    //}
 
 
 
-    private void PlayerInFront()
-    {
-        spriteMask.enabled = true;
-        enabled = true;
-        PauseMenu.SetResume(true);
+    //private void PlayerInFront()
+    //{
+    //    spriteMask.enabled = true;
+    //    enabled = true;
+    //    PauseMenu.SetResume(true);
 
-        playerPlace = PlayerPlace.Front;
-    }
-    private void PlayerInMid()
-    {
-        spriteMask.enabled = false;
-        enabled = false;
-        PauseMenu.SetResume(true);
-        Player.main.sr.maskInteraction = SpriteMaskInteraction.None;
+    //    playerPlace = PlayerPlace.Front;
+    //}
+    //private void PlayerInMid()
+    //{
+    //    spriteMask.enabled = false;
+    //    enabled = false;
+    //    PauseMenu.SetResume(true);
+    //    Player.main.sr.maskInteraction = SpriteMaskInteraction.None;
 
-        playerPlace = PlayerPlace.Mid;
-    }
-    private void PlayerInBack()
-    {
-        spriteMask.enabled = false;
-        playerTr.SetParent(backPage);
-        enabled = true;
-        PauseMenu.SetResume(true);
+    //    playerPlace = PlayerPlace.Mid;
+    //}
+    //private void PlayerInBack()
+    //{
+    //    spriteMask.enabled = false;
+    //    playerTr.SetParent(backPage);
+    //    enabled = true;
+    //    PauseMenu.SetResume(true);
 
-        playerPlace = PlayerPlace.Back;
-    }
-    private void PlayerInGround()
-    {
-        spriteMask.enabled = true;
-        enabled = true;
-        PauseMenu.SetResume(true);
+    //    playerPlace = PlayerPlace.Back;
+    //}
+    //private void PlayerInGround()
+    //{
+    //    spriteMask.enabled = true;
+    //    enabled = true;
+    //    PauseMenu.SetResume(true);
 
-        playerPlace = PlayerPlace.Ground;
-    }
+    //    playerPlace = PlayerPlace.Ground;
+    //}
 
     //IFoldEffected Functions
     private void InvokeFoldEffecteds()

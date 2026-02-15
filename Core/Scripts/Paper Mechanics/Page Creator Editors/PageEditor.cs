@@ -153,6 +153,7 @@ namespace Folded.Editor
             Vector3 gridCellSize = Vector3.Scale(page.backgroundGrid.cellSize, page.backgroundGrid.transform.localScale);
             Vector3 pageSize = new(gridCellSize.x * this.pageSize.x, gridCellSize.y * this.pageSize.y, 1f);
 
+            page.frontCol.size = Vector3.Scale(pageSize, new(1f,1f,10f));
             if (middlePageType == MiddlePageType.None) middlePageLength = 0f;
 
             Vector3 gapVector = arrangeType switch
@@ -349,6 +350,11 @@ namespace Folded.Editor
         {
             [SerializeField, Tooltip("Front Page Transform")]
             public Transform page;
+
+            [Space]
+
+            [SerializeField, Tooltip("Main Front Page Collider")]
+            public BoxCollider frontCol;
 
             [Space]
 

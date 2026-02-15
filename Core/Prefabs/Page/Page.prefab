@@ -1986,22 +1986,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1a2bf213e40f44d2ebeb8279b0f52128, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  spriteMask: {fileID: 3428702363276436466}
-  frontPage: {fileID: 4984253996562107558}
-  backPage: {fileID: 6388060195494124529}
-  pageMask: {fileID: 6958058143715132147}
-  backCol: {fileID: 1091330721952182613}
-  maskCol: {fileID: 4512344162200038433}
   playerLayer:
     serializedVersion: 2
     m_Bits: 256
   obstacleLayer:
     serializedVersion: 2
     m_Bits: 16384
+  frontPage: {fileID: 4984253996562107558}
+  backPage: {fileID: 6388060195494124529}
+  spriteMask: {fileID: 3428702363276436466}
+  pageMask: {fileID: 6958058143715132147}
+  backCol: {fileID: 1091330721952182613}
+  frontCol: {fileID: 5592422573828122491}
+  maskCol: {fileID: 4512344162200038433}
   mc: {fileID: 3856454701965500747}
-  depth: {x: 0, y: 0, z: 5}
-  foldableDeadzone: 1
   foldDirection: {x: 1, y: 0}
+  foldableDeadzone: 1
+  depth: {x: 0, y: 0, z: 5}
 --- !u!1 &2175990466385486615
 GameObject:
   m_ObjectHideFlags: 0
@@ -5265,7 +5266,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 69dc29dc0013c4745ae266bfcb5ff5c3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Folded.Editor.PageEditor
+  pageCenter: {x: 0, y: 0}
+  size: {x: 0, y: 0}
   arrangeType: 0
+  showType: 0
   viewType: 1
   pageSize: {x: 10, y: 14}
   middlePageType: 2
@@ -5277,10 +5281,10 @@ MonoBehaviour:
     controller: {fileID: 7079755894039363682}
     frontPage:
       page: {fileID: 4984253996562107558}
+      frontCol: {fileID: 5592422573828122491}
       backgroundGrid: {fileID: 399822129594933396}
       backgroundMap: {fileID: 8244036902712480638}
       groundMap: {fileID: 5225211693421211589}
-      collisionMask: {fileID: 0}
     backPage:
       page: {fileID: 6388060195494124529}
       backgroundGrid: {fileID: 2801976595104206888}
@@ -5299,10 +5303,10 @@ MonoBehaviour:
     controller: {fileID: 5999191495370305969}
     frontPage:
       page: {fileID: 5080483272688519262}
+      frontCol: {fileID: 1327785106966170091}
       backgroundGrid: {fileID: 959670632592814615}
       backgroundMap: {fileID: 4075946875405690482}
       groundMap: {fileID: 4507806149636544530}
-      collisionMask: {fileID: 0}
     backPage:
       page: {fileID: 1491684055395433993}
       backgroundGrid: {fileID: 4403666489795844036}
@@ -7198,10 +7202,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 78b174e800be8478dae44ec54b85effb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  sprite: {fileID: 0}
   foldDirection: {x: -1, y: 0}
   connectedPage: {fileID: 0}
   controller: {fileID: 5999191495370305969}
   cursorTextures: []
+  lastInteracted: 0
 --- !u!135 &5577088022202137401
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -7346,6 +7352,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5080483272688519262}
   - component: {fileID: 2492807644755223548}
+  - component: {fileID: 1327785106966170091}
   m_Layer: 13
   m_Name: Front Page
   m_TagString: frontMap
@@ -7428,6 +7435,27 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!65 &1327785106966170091
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4489505702502818429}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 0.2}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &4496754146741017938
 GameObject:
   m_ObjectHideFlags: 0
@@ -7701,10 +7729,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 78b174e800be8478dae44ec54b85effb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  sprite: {fileID: 0}
   foldDirection: {x: -1, y: 1}
   connectedPage: {fileID: 0}
   controller: {fileID: 5999191495370305969}
   cursorTextures: []
+  lastInteracted: 0
 --- !u!135 &837359924542387550
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -7829,22 +7859,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1a2bf213e40f44d2ebeb8279b0f52128, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  spriteMask: {fileID: 729032795356107433}
-  frontPage: {fileID: 5080483272688519262}
-  backPage: {fileID: 1491684055395433993}
-  pageMask: {fileID: 4317510162492674480}
-  backCol: {fileID: 1535711286089756284}
-  maskCol: {fileID: 6513445541574683800}
   playerLayer:
     serializedVersion: 2
     m_Bits: 256
   obstacleLayer:
     serializedVersion: 2
     m_Bits: 16384
+  frontPage: {fileID: 5080483272688519262}
+  backPage: {fileID: 1491684055395433993}
+  spriteMask: {fileID: 729032795356107433}
+  pageMask: {fileID: 4317510162492674480}
+  backCol: {fileID: 1535711286089756284}
+  frontCol: {fileID: 1327785106966170091}
+  maskCol: {fileID: 6513445541574683800}
   mc: {fileID: 6884974547499684605}
-  depth: {x: 0, y: 0, z: 5}
-  foldableDeadzone: 1
   foldDirection: {x: -1, y: 0}
+  foldableDeadzone: 1
+  depth: {x: 0, y: 0, z: 5}
 --- !u!1 &5673457720149332699
 GameObject:
   m_ObjectHideFlags: 0
@@ -9458,10 +9489,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 78b174e800be8478dae44ec54b85effb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  sprite: {fileID: 0}
   foldDirection: {x: 1, y: 0}
   connectedPage: {fileID: 0}
   controller: {fileID: 7079755894039363682}
   cursorTextures: []
+  lastInteracted: 0
 --- !u!135 &3534056641913137255
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -9588,6 +9621,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 78b174e800be8478dae44ec54b85effb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  sprite: {fileID: 0}
   foldDirection: {x: -1, y: -1}
   connectedPage: {fileID: 0}
   controller: {fileID: 5999191495370305969}
@@ -9595,6 +9629,7 @@ MonoBehaviour:
   - {fileID: 2800000, guid: 58cf0e62b935d4867b58b65e5c1daf5e, type: 3}
   - {fileID: 2800000, guid: 0b5974ffdd3004b09a9bc11150bb6a20, type: 3}
   - {fileID: 2800000, guid: a7d9eee0daeb0438d93ebd79eadebedb, type: 3}
+  lastInteracted: 0
 --- !u!135 &7719773673451056980
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -10809,10 +10844,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 78b174e800be8478dae44ec54b85effb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  sprite: {fileID: 0}
   foldDirection: {x: 1, y: -1}
   connectedPage: {fileID: 0}
   controller: {fileID: 7079755894039363682}
   cursorTextures: []
+  lastInteracted: 0
 --- !u!135 &3830674470813756957
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -12644,6 +12681,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4984253996562107558}
   - component: {fileID: 8613845201454220983}
+  - component: {fileID: 5592422573828122491}
   m_Layer: 13
   m_Name: Front Page
   m_TagString: frontMap
@@ -12726,6 +12764,27 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!65 &5592422573828122491
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8495103001313821712}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 0.2}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &8984856675711238780
 GameObject:
   m_ObjectHideFlags: 0
@@ -14814,10 +14873,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 78b174e800be8478dae44ec54b85effb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  sprite: {fileID: 0}
   foldDirection: {x: 1, y: 1}
   connectedPage: {fileID: 0}
   controller: {fileID: 7079755894039363682}
   cursorTextures: []
+  lastInteracted: 0
 --- !u!135 &495179001325876119
 SphereCollider:
   m_ObjectHideFlags: 0
