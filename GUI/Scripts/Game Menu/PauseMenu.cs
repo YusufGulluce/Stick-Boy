@@ -124,10 +124,11 @@ public class PauseMenu : MonoBehaviour
         leftSidedUI.SetActive(offset.x <= 0);
         rightSidedUI.SetActive(offset.x > 0);
 
+        CameraFollow.main.enabled = false;
         cam.gameObject.AddComponent<PauseCamera>().Set(
             Folded.Editor.PageEditor.main.pageCenter + offset,
             Folded.Editor.PageEditor.main.size.y * .6f, pauseZoomSpeed);
-        cam.GetComponent<Folded.GUI.DeskCam>().Enable();
+        //cam.GetComponent<Folded.GUI.DeskCam>().Enable();
         if (FoldController.pages != null)
             foreach (FoldController page in FoldController.pages)
                 page.EditMode(true);
@@ -143,7 +144,7 @@ public class PauseMenu : MonoBehaviour
     {
         if(canResume)
         {
-            cam.GetComponent<Folded.GUI.DeskCam>().AdjustTo(Vector3.forward, .2f);
+            //cam.GetComponent<Folded.GUI.DeskCam>().AdjustTo(Vector3.forward, .2f);
             Player.main.sr.maskInteraction = SpriteMaskInteraction.None;
             Player.main.FixMomentum();
 

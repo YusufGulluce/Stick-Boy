@@ -156,7 +156,11 @@ public class FoldArea : MonoBehaviour, IPauseEffected
     }
     public void SetUIVisibility()
     {
-        if((lastInteracted || (Vector2.Dot(foldDirection.normalized, ((Vector2)transform.position - initalPos).normalized) <= 0.1f)))
+        Vector2 lastDir = Vector2.zero;
+        foreach (FoldArea other in others)
+            if(other.lastInteracted) lastDir = other.foldDirection;
+
+        if ((lastInteracted || ((Vector2)transform.position - initalPos).magnitude < .1f || (Vector2.Dot(lastDir.normalized, ((Vector2)transform.position - initalPos).normalized) <= -.01f)))
         {
             UIArea.enabled = true;
         }
@@ -179,6 +183,8 @@ public class FoldArea : MonoBehaviour, IPauseEffected
     {
         UIArea.enabled = false;
         enabled = false;
+        if (drag)
+            OnPointerUp();
     }
     #endregion
 
@@ -205,11 +211,15 @@ public class FoldArea : MonoBehaviour, IPauseEffected
         private void OnEnable()
         {
             if(image)
+            {
                 image.enabled = true;
+                image.color = halfWhite;
+            }
         }
         private void OnDisable()
         {
             image.enabled = false;
+            
         }
 
         #region Pointer Functions

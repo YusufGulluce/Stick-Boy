@@ -92,13 +92,14 @@ public class DoorofKey : MonoBehaviour, Folded.Core.IInteractable, Folded.IFoldE
     //IInteractables
     public void Interact()
     {
-        Debug.Log("interacted dorr");
-        if((interactable && mode != DoorMode.OutDoor && onFront)
-            || (!onFront && mode != DoorMode.OutDoor && !FoldController.OnDesk(transform.position)))
+        if(IsInteractable() && mode != DoorMode.OutDoor)
         {
             ShowDoorOpenability();
             if (open)
-                Open(Player.main);
+            {
+                if ((mode == DoorMode.ToDoor && otherDoor.IsInteractable()) || mode == DoorMode.ToScene)
+                    Open(Player.main);
+            }
             else if (KeyofDoor.keyCount > 0)
             {
                 --KeyofDoor.keyCount;
@@ -107,6 +108,12 @@ public class DoorofKey : MonoBehaviour, Folded.Core.IInteractable, Folded.IFoldE
                 Folded.Core.PlayerHand.main.ClearState();
             }
         }
+    }
+
+    private bool IsInteractable()
+    {
+        return ((interactable && onFront)
+            || (!onFront && !FoldController.OnDesk(transform.position)));
     }
 
     public void ImmidiateInteract()

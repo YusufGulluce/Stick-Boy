@@ -9859,7 +9859,8 @@ GameObject:
   - component: {fileID: 1597343192924444061}
   - component: {fileID: 5468048629674949172}
   - component: {fileID: 4288704386349283770}
-  m_Layer: 0
+  - component: {fileID: 7316874965259029841}
+  m_Layer: 11
   m_Name: Right Back Map
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -10117,6 +10118,18 @@ TilemapRenderer:
   m_SortOrder: 0
   m_Mode: 0
   m_DetectChunkCullingBounds: 0
+--- !u!114 &7316874965259029841
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6765825638692548438}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4fc8681044fb74a47bac14ffc90e8719, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Folded.Core.TileSetLayerSetter
 --- !u!1 &6797422497630368492
 GameObject:
   m_ObjectHideFlags: 0
@@ -10219,7 +10232,8 @@ GameObject:
   - component: {fileID: 7025536668960022158}
   - component: {fileID: 1587832631671985935}
   - component: {fileID: 4122209167019449699}
-  m_Layer: 0
+  - component: {fileID: 4370083784545193428}
+  m_Layer: 11
   m_Name: Left Back Map
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -10519,6 +10533,18 @@ TilemapRenderer:
   m_SortOrder: 0
   m_Mode: 0
   m_DetectChunkCullingBounds: 0
+--- !u!114 &4370083784545193428
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7672764680444741556}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4fc8681044fb74a47bac14ffc90e8719, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Folded.Core.TileSetLayerSetter
 --- !u!1 &7748669233354747822
 GameObject:
   m_ObjectHideFlags: 0

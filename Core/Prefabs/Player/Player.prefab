@@ -262,7 +262,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   sr: {fileID: 0}
-  groundRayGap: 0.15
+  groundRayGap: 0.3
   groundRayDistance: 1.45
   speed: 60
   maxSpeed: 10
@@ -273,7 +273,7 @@ MonoBehaviour:
   jumpTreshHold: 0.15
   jumpableLayers:
     serializedVersion: 2
-    m_Bits: 24576
+    m_Bits: 26624
   fallMult: 1.2
   rotationSpeed: 0
   rotationDeadline: 0

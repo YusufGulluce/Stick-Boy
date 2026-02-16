@@ -12,6 +12,10 @@ public class FoldController : MonoBehaviour
     public static List<FoldController> pages = new();
     ///<summary>In pause mode, indicates where player start. (Front page, Back page etc.)</summary>
     private static PlayerPlace playerPlace = PlayerPlace.Front;
+
+    ///<summary>Inorder for camera follow class to use, borders of playground.</summary>
+    public static Vector2 minBorder;
+    public static Vector2 maxBorder;
     #endregion
 
     #region general variables
@@ -136,6 +140,8 @@ public class FoldController : MonoBehaviour
 
         if (mc.sharedMesh == null)
             mc.sharedMesh = new();
+
+        UpdateBorders();
 
     }
     private void Update()
@@ -269,6 +275,7 @@ public class FoldController : MonoBehaviour
                 count = count >= 4 ? 0 : 4;
             }
             PauseMenu.SetResume(count <= 0);
+            UpdateBorders();
 
             InvokeFoldEffecteds();
             PlaceCollisionHolders();
@@ -333,7 +340,7 @@ public class FoldController : MonoBehaviour
         float divisor = foldVector.x != 0f && foldVector.y != 0 ? Mathf.Sqrt(.5f) : 1f;
 
 
-        Vector2 ret = foldPointStart + Mathf.Min((point - foldPointStart).magnitude - 1f, foldableLength / divisor) * cosa * foldVector.normalized;
+        Vector2 ret = foldPointStart + Mathf.Min((point - foldPointStart).magnitude, foldableLength / divisor) * cosa * foldVector.normalized;
 
         if (Vector2.Dot(ret - foldPointStart, foldVector) <= 0)
         {
@@ -606,6 +613,23 @@ public class FoldController : MonoBehaviour
         verts.AddRange(new Vector3[] { points[0] - depth, points[0] + depth, points[1] - depth, points[1] + depth });
         tris.AddRange(new int[] { verts.Count - 4, verts.Count - 3, verts.Count - 1, verts.Count - 4, verts.Count - 1, verts.Count - 2 });
 
+    }
+    #endregion
+
+    #region Shared Static Functions
+    private static void UpdateBorders()
+    {
+        minBorder = Vector2.zero;
+        maxBorder = Vector2.zero;
+        foreach (FoldController page in pages)
+        {
+            if (page.transform.position.x - page.pageLossyScale.x * .5f < minBorder.x) minBorder.x = page.transform.position.x - page.pageLossyScale.x * .5f;
+            if (page.transform.position.x + page.pageLossyScale.x * .5f > maxBorder.x) maxBorder.x = page.transform.position.x + page.pageLossyScale.x * .5f;
+            if (page.transform.position.y - page.pageLossyScale.y * .5f < minBorder.y) minBorder.y = page.transform.position.y - page.pageLossyScale.y * .5f;
+            if (page.transform.position.y + page.pageLossyScale.y * .5f > maxBorder.y) maxBorder.y = page.transform.position.y + page.pageLossyScale.y * .5f;
+        }
+
+        Debug.Log("min border: " + minBorder + "\nmax border: " + maxBorder);
     }
     #endregion
 
