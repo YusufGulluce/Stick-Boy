@@ -216,7 +216,21 @@ public class FoldController : MonoBehaviour
         if (playerPlace == PlayerPlace.Front)
         {
             foreach (FoldController page in pages)
-                if (count <= 0) count = page.CheckPlayerIn(page.backCol);
+                if (count <= 0) count = page.CheckPlayerIn(page.frontCol);
+            if (count >= 4)
+            {
+                count = 0;
+                foreach (FoldController page in pages)
+                    if (count <= 0) count = page.CheckPlayerIn(page.backCol);
+                if (count <= 0)
+                {
+                    count = 0;
+                    foreach (FoldController page in pages)
+                        if (count <= 0) count = page.CheckPlayerIn(page.maskCol);
+                }
+            }
+            else
+                count = 4;
         }
         else if (playerPlace == PlayerPlace.Back)
         {

@@ -156,7 +156,7 @@ public class FoldArea : MonoBehaviour, IPauseEffected
     }
     public void SetUIVisibility()
     {
-        if((lastInteracted || (Vector2.Dot(foldDirection, (Vector2)transform.position - initalPos) <= 0.1f)))
+        if((lastInteracted || (Vector2.Dot(foldDirection.normalized, ((Vector2)transform.position - initalPos).normalized) <= 0.1f)))
         {
             UIArea.enabled = true;
         }
