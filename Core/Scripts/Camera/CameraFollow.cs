@@ -69,7 +69,9 @@ public class CameraFollow : MonoBehaviour
         {
             Vector3 pos = transform.position;
 
-            if (Mathf.Abs(pos.x - player.position.x) > deadBox.x)
+            if (Camera.main.orthographicSize > maxBorder.x - minBorder.x)
+                pos.x = Mathf.Lerp(transform.position.x, (maxBorder.x + minBorder.x) * .5f, smooth);
+            else if (Mathf.Abs(pos.x - player.position.x) > deadBox.x)
                 pos.x = Mathf.Lerp(transform.position.x, Mathf.Min(Mathf.Max(player.position.x + offset.x + deadBox.x * camDirX, minBorder.x), maxBorder.x), smooth);
             if (Mathf.Abs(pos.y - player.position.y - offset.y) > deadBox.y)
                 pos.y = Mathf.Lerp(transform.position.y, Mathf.Min(Mathf.Max(player.position.y + offset.y + deadBox.y * camDirY, minBorder.y), maxBorder.y), smooth);
@@ -103,6 +105,18 @@ public class CameraFollow : MonoBehaviour
 
     IEnumerator Repostion()
     {
+        int camDirX = transform.position.x > player.position.x ? 1 : -1;
+        int camDirY = transform.position.y > player.position.y + offset.y ? 1 : -1;
+        if (size  * Camera.main.aspect > maxBorder.x - minBorder.x)
+            lastPos.x = .5f * (maxBorder.x + minBorder.x);
+        else
+            lastPos.x = Mathf.Min(Mathf.Max(player.position.x + offset.x + deadBox.x * camDirX, minBorder.x), maxBorder.x);
+
+        //if (size > maxBorder.y - minBorder.y)
+        //    lastPos.y = .5f * (maxBorder.y + minBorder.y);
+        //else
+            lastPos.y = Mathf.Min(Mathf.Max(player.position.y + offset.y + deadBox.y * camDirY, minBorder.y), maxBorder.y);
+
         enabled = true;
         rePositioning = true;
         yield return new WaitForSeconds(.3f);

@@ -2045,7 +2045,7 @@ MonoBehaviour:
   menuKey: 27
   pauseCameraOffset: {x: -10, y: 0}
   pauseSize: 30
-  pauseZoomSpeed: 0.1
+  pauseZoomSpeed: 10
   sideType: 0
   pauseText: {fileID: 5237396272428298468}
   cantResume: {fileID: 1772974224972420382}
